@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "Participant": {
+      "title": "Participant",
+      "description": "Details of the tournament participant registering predictions",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the player"
+        },
+        "email": {
+          "type": "string",
+          "description": "Verified email address of the player"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional WhatsApp number/phone of the player"
+        }
+      },
+      "required": ["name", "email"]
+    },
+    "QuinielaSubmission": {
+      "title": "QuinielaSubmission",
+      "description": "The submitted game scores and predictions for the 72 games",
+      "type": "object",
+      "properties": {
+        "participant": {
+          "type": "object",
+          "description": "Nested player profile of the sender"
+        },
+        "predictions": {
+          "type": "object",
+          "description": "Map of match IDs to predicted home and away goals"
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "Server timestamp or ISO formatted creation date"
+        },
+        "totalMatchesPredicted": {
+          "type": "integer",
+          "description": "Number of matches predicted (up to 72)"
+        }
+      },
+      "required": ["participant", "predictions", "submittedAt", "totalMatchesPredicted"]
+    }
+  },
+  "firestore": {
+    "/submissions/{submissionId}": {
+      "schema": "QuinielaSubmission",
+      "description": "Stores user submitted predictions for subsequent leaderboard processing"
+    }
+  }
+}

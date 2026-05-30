@@ -1,0 +1,6 @@
+{
+  "name": "Quiniela Mundial 2026",
+  "description": "Aplicación para el registro de pronósticos de la quiniela de la fase de grupos del Mundial de Fútbol 2026 con soporte para envío a WhatsApp y correo electrónico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

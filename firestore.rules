@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global Safety Net (Default Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Submissions Collection Rules
+    match /submissions/{submissionId} {
+      allow read, list: if true; // Public access for checking participants/leaderboard
+      allow create, update: if isValidSubmission(request.resource.data);
+      allow delete: if true; // Allow deletions for management and cleanup
+    }
+
+    // 3. Validation Blueprint Helper (Anti-Update-Gap & Size Enforcements)
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['participant', 'predictions', 'submittedAt', 'totalMatchesPredicted'])
+        && data.keys().size() == 4
+        && data.participant.keys().hasAll(['name', 'email'])
+        && data.participant.name is string
+        && data.participant.name.size() > 0
+        && data.participant.name.size() <= 200
+        && data.participant.email is string
+        && data.participant.email.size() > 0
+        && data.participant.email.size() <= 200
+        && data.predictions is map
+        && data.submittedAt is string
+        && data.submittedAt.size() <= 100
+        && data.totalMatchesPredicted is int
+        && data.totalMatchesPredicted >= 0
+        && data.totalMatchesPredicted <= 72;
+    }
+  }
+}
