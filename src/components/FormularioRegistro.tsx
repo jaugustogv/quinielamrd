@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   User, 
   Mail, 
@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   Sparkles,
   RefreshCw,
-  Gamepad2
+  Gamepad2,
+  Lock
 } from "lucide-react";
 import { MATCHES } from "../games";
 import { getTeamFlag, getTeamFlagUrl } from "../utils";
@@ -25,9 +26,17 @@ interface FormularioRegistroProps {
   onSuccess: (submission: QuinielaSubmission) => void;
   isSubmitting: boolean;
   submissions?: QuinielaSubmission[];
+  initialEmail?: string;
+  onClearInitialEmail?: () => void;
 }
 
-export default function FormularioRegistro({ onSuccess, isSubmitting, submissions = [] }: FormularioRegistroProps) {
+export default function FormularioRegistro({ 
+  onSuccess, 
+  isSubmitting, 
+  submissions = [],
+  initialEmail = "",
+  onClearInitialEmail
+}: FormularioRegistroProps) {
   // Step 1: Info, Step 2: Predictions
   const [step, setStep] = useState<1 | 2>(1);
   
@@ -40,7 +49,8 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+  const [pin, setPin] = useState("");
+  const [errors, setErrors] = useState<{ name?: string; email?: string; pin?: string }>({});
 
   // Editing state to track if we loaded an existing submission
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | undefined>(undefined);
@@ -72,6 +82,48 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
     return initial;
   });
 
+  // Watch for initialEmail prop (e.g. from homepage recovery) and auto-load if set
+  useEffect(() => {
+    if (initialEmail && initialEmail.trim()) {
+      const emailLower = initialEmail.trim().toLowerCase();
+      setEmail(emailLower);
+      
+      const found = submissions.find(
+        (s) => s.participant.email.toLowerCase().trim() === emailLower
+      );
+      
+      // If it has NO pin, we can safely auto-load it instantly as before
+      if (found && !found.participant.pin) {
+        setName(found.participant.name);
+        setPhone(found.participant.phone || "");
+        setEditingSubmissionId(found.id);
+        setEditingSubmittedAt(found.submittedAt);
+        setStep(2); // Jump to predictions directly
+        
+        const loadedPredictions: any = {};
+        MATCHES.forEach((m) => {
+          const pred = found.predictions[m.id];
+          loadedPredictions[m.id] = {
+            homeScore: pred && typeof pred.homeScore === "number" ? pred.homeScore : "",
+            awayScore: pred && typeof pred.awayScore === "number" ? pred.awayScore : "",
+          };
+        });
+        setPredictions(loadedPredictions);
+      } else if (found && found.participant.pin) {
+        // If it DOES have a pin, keep them on step 1 and show a notice to type the PIN
+        setStep(1);
+        setErrors((prev) => ({ 
+          ...prev, 
+          pin: "Esta quiniela de un jugador registrado está protegida. Ingresa tu clave/PIN de 4 dígitos para editarla." 
+        }));
+      }
+      
+      if (onClearInitialEmail) {
+        onClearInitialEmail();
+      }
+    }
+  }, [initialEmail, submissions, onClearInitialEmail]);
+
   // Calculate stats
   const totalPredicted = useMemo(() => {
     return Object.values(predictions).filter(
@@ -88,19 +140,48 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
 
   // Validation for Step 1
   const validateStep1 = () => {
-    const errs: { name?: string; email?: string } = {};
+    const errs: { name?: string; email?: string; pin?: string } = {};
     if (!name.trim()) errs.name = "El nombre completo es obligatorio.";
+    
+    // Email check
     if (!email.trim()) {
       errs.email = "El correo electrónico es obligatorio.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errs.email = "Por favor introduce un correo electrónico válido.";
     }
+
+    // PIN check (4-digit numerical passcode)
+    if (!pin.trim()) {
+      errs.pin = "La clave de 4 dígitos es obligatoria para proteger tu quiniela.";
+    } else if (!/^\d{4}$/.test(pin.trim())) {
+      errs.pin = "La clave debe tener exactamente 4 dígitos numéricos (ej. 1234).";
+    } else if (foundExistingSubmission && foundExistingSubmission.participant.pin && foundExistingSubmission.participant.pin !== pin.trim()) {
+      errs.pin = "La clave de seguridad ingresada es incorrecta para este participante.";
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleNextStep = () => {
     if (validateStep1()) {
+      if (foundExistingSubmission) {
+        // Auto-load current submission predictions and info upon verification of the correct PIN
+        setName(foundExistingSubmission.participant.name);
+        setPhone(foundExistingSubmission.participant.phone || "");
+        setEditingSubmissionId(foundExistingSubmission.id);
+        setEditingSubmittedAt(foundExistingSubmission.submittedAt);
+        
+        const loadedPredictions: any = {};
+        MATCHES.forEach((m) => {
+          const pred = foundExistingSubmission.predictions[m.id];
+          loadedPredictions[m.id] = {
+            homeScore: pred && typeof pred.homeScore === "number" ? pred.homeScore : "",
+            awayScore: pred && typeof pred.awayScore === "number" ? pred.awayScore : "",
+          };
+        });
+        setPredictions(loadedPredictions);
+      }
       setStep(2);
     }
   };
@@ -161,13 +242,13 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
   };
 
   const executeSubmit = () => {
-    // Format predictions safely
-    const formattedPredictions: { [matchId: number]: { homeScore: number; awayScore: number } } = {};
+    // Format predictions safely, preserving empty predictions so we don't overwrite them with 0s
+    const formattedPredictions: { [matchId: number]: { homeScore: number | ""; awayScore: number | "" } } = {};
     MATCHES.forEach((m) => {
       const pred = predictions[m.id];
       formattedPredictions[m.id] = {
-        homeScore: pred.homeScore === "" ? 0 : Number(pred.homeScore),
-        awayScore: pred.awayScore === "" ? 0 : Number(pred.awayScore),
+        homeScore: pred.homeScore === "" ? "" : Number(pred.homeScore),
+        awayScore: pred.awayScore === "" ? "" : Number(pred.awayScore),
       };
     });
 
@@ -175,6 +256,7 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim() || undefined,
+      pin: pin.trim() || (foundExistingSubmission?.participant.pin) || undefined,
       registeredAt: new Date().toISOString(),
     };
 
@@ -309,11 +391,26 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
                     ¡Planilla existente registrada!
                   </p>
                   <p className="text-[11px] text-white/75 mt-1.5 leading-normal">
-                    Tienes una participación con <span className="text-[#00FF00] font-mono font-black">{foundExistingSubmission.totalMatchesPredicted}/72</span> partidos ya pronosticados. ¡Puedes cargarla si deseas editarla o terminar de rellenarla!
+                    Tienes una participación con <span className="text-[#00FF00] font-mono font-black">{foundExistingSubmission.totalMatchesPredicted}/72</span> partidos ya pronosticados. ¡Ingresa tu clave de 4 dígitos abajo para verificar tu identidad y reanudar o editar tu quiniela!
                   </p>
                   <button
                     type="button"
                     onClick={() => {
+                      if (!pin.trim() || !/^\d{4}$/.test(pin.trim())) {
+                        setErrors((prev) => ({ 
+                          ...prev, 
+                          pin: "Introduce tu PIN de 4 dígitos para poder cargar y editar esta planilla." 
+                        }));
+                        return;
+                      }
+                      if (foundExistingSubmission.participant.pin && foundExistingSubmission.participant.pin !== pin.trim()) {
+                        setErrors((prev) => ({ 
+                          ...prev, 
+                          pin: "La clave PIN de seguridad ingresada es incorrecta." 
+                        }));
+                        return;
+                      }
+
                       setName(foundExistingSubmission.participant.name);
                       setPhone(foundExistingSubmission.participant.phone || "");
                       setEditingSubmissionId(foundExistingSubmission.id);
@@ -329,6 +426,7 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
                         };
                       });
                       setPredictions(loadedPredictions);
+                      setStep(2);
                     }}
                     className="mt-3 w-full bg-[#00FF00] hover:bg-white text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all active:scale-[0.98] cursor-pointer text-center font-mono flex items-center justify-center gap-2 uppercase tracking-tight"
                   >
@@ -357,6 +455,44 @@ export default function FormularioRegistro({ onSuccess, isSubmitting, submission
               </div>
               <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
                 Utilizado para generar el enlace directo que envía tus marcadores en un solo bloque a WhatsApp.
+              </p>
+            </div>
+
+            <div>
+              <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                Clave PIN de Seguridad <span className="text-[#00FF00]">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                  <Lock className="w-5 h-5 text-white/30" />
+                </div>
+                <input
+                  id="txt-pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="\d*"
+                  maxLength={4}
+                  placeholder="••••"
+                  value={pin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setPin(val);
+                    if (val.length === 4) {
+                      setErrors((prev) => ({ ...prev, pin: undefined }));
+                    }
+                  }}
+                  className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
+                    errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                  } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all placeholder-white/20`}
+                />
+              </div>
+              {errors.pin && <p className="text-xs text-red-400 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
+              <p className="text-[10px] text-white/40 mt-2 leading-relaxed font-light">
+                {foundExistingSubmission 
+                  ? foundExistingSubmission.participant.pin 
+                    ? "Esta planilla tiene una clave registrada. Introduce tu PIN de 4 dígitos para poder editarla o reanudarla." 
+                    : "Este participante no tiene clave PIN registrada. ¡Establece una clave de 4 dígitos para protegerla!"
+                  : "Crea una clave numérica de 4 dígitos para poder volver a acceder o modificar tus marcadores en el futuro."}
               </p>
             </div>
 

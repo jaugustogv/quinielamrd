@@ -131,7 +131,7 @@ export function getTeamFlagUrl(teamName: string): string {
 export function generateWhatsAppMessage(
   name: string,
   email: string,
-  predictions: { [key: number]: { homeScore: number; awayScore: number } },
+  predictions: { [key: number]: { homeScore: number | ""; awayScore: number | "" } },
   matches: Match[]
 ): string {
   let text = `🏆 *QUINIELA MUNDIAL 2026* 🏆\n\n`;
@@ -170,7 +170,7 @@ export function generateWhatsAppMessage(
  * Generates a clean tab-separated dataset that can be pasted directly into Excel or Google Sheets
  */
 export function generateSpreadsheetPasteableText(
-  predictions: { [key: number]: { homeScore: number; awayScore: number } },
+  predictions: { [key: number]: { homeScore: number | ""; awayScore: number | "" } },
   matches: Match[]
 ): string {
   let text = `ID_PARTIDO\tGRUPO\tEQUIPO_LOCAL\tGOLES_LOCAL\tGOLES_VISITANTE\tEQUIPO_VISITANTE\n`;
@@ -189,7 +189,7 @@ export function generateSpreadsheetPasteableText(
 export function generateCompactSummaryText(
   name: string,
   email: string,
-  predictions: { [key: number]: { homeScore: number; awayScore: number } },
+  predictions: { [key: number]: { homeScore: number | ""; awayScore: number | "" } },
   matches: Match[]
 ): string {
   let text = `🏆 QUINIELA MUNDIAL 2026 - QuinielasMRD 🏆\n`;

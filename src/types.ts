@@ -8,6 +8,7 @@ export interface Participant {
   email: string;
   phone?: string;
   registeredAt: string; // ISO String
+  pin?: string;         // PIN de seguridad de 4 dígitos
 }
 
 export interface Prediction {
@@ -19,7 +20,7 @@ export interface Prediction {
 export interface QuinielaSubmission {
   id?: string; // Firebase Document ID
   participant: Participant;
-  predictions: { [matchId: number]: { homeScore: number; awayScore: number } };
+  predictions: { [matchId: number]: { homeScore: number | ""; awayScore: number | "" } };
   submittedAt: string;
   totalMatchesPredicted: number;
 }

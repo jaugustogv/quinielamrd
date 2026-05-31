@@ -19,7 +19,9 @@ export function getLocalSubmissions(): QuinielaSubmission[] {
 }
 
 export async function saveSubmission(submission: QuinielaSubmission): Promise<string> {
-  const emailLower = submission.participant.email.toLowerCase().trim();
+  // Normalize email to lowercase to prevent mixed-case duplicate accounts
+  submission.participant.email = submission.participant.email.toLowerCase().trim();
+  const emailLower = submission.participant.email;
   
   // 1. Overwrite/update LocalStorage if exact email matches (instead of duplicates)
   const localData = getLocalSubmissions();
@@ -60,10 +62,10 @@ export async function saveSubmission(submission: QuinielaSubmission): Promise<st
       let existingDocId = submission.id && !submission.id.startsWith("local_") ? submission.id : null;
 
       if (!existingDocId) {
-        // Query to find duplicate email in Firestore
+        // Query to find duplicate email in Firestore (using case-insensitive lowercase email normalization)
         const q = query(
           collection(db, colPath),
-          where("participant.email", "==", submission.participant.email.trim())
+          where("participant.email", "==", emailLower)
         );
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {

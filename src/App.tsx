@@ -14,7 +14,8 @@ import {
   Info,
   Calendar,
   Layers,
-  Sparkle
+  Sparkle,
+  Mail
 } from "lucide-react";
 import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
@@ -31,6 +32,9 @@ export default function App() {
   const [currentSubmission, setCurrentSubmission] = useState<QuinielaSubmission | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resumeEmail, setResumeEmail] = useState("");
+  const [searchEmailInput, setSearchEmailInput] = useState("");
+  const [searchEmailFeedback, setSearchEmailFeedback] = useState<any | null>(null);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -79,6 +83,12 @@ export default function App() {
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: "smooth" });
     
+    // Clear homepage rescue search queries when changing tabs
+    if (tab !== "home") {
+      setSearchEmailInput("");
+      setSearchEmailFeedback(null);
+    }
+    
     try {
       const url = new URL(window.location.href);
       if (tab === "home") {
@@ -92,19 +102,52 @@ export default function App() {
     }
   };
 
+  // Helper to scroll to recovery / edit email field
+  const scrollToRecovery = () => {
+    setActiveTab("home");
+    setTimeout(() => {
+      const el = document.getElementById("txt-search-resume-email");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+      }
+    }, 150);
+  };
+
   // Handle successful form submission
   const handleSubmissionSuccess = async (sub: QuinielaSubmission) => {
     setIsSubmitting(true);
     try {
       const docId = await saveSubmission(sub);
       const submissionWithId = { ...sub, id: docId };
-      setSubmissions((prev) => [submissionWithId, ...prev]);
+      
+      // Prevent duplicates in active state list when overwriting/re-submitting an existing email
+      setSubmissions((prev) => {
+        const filtered = prev.filter(
+          (s) => s.participant.email.toLowerCase().trim() !== sub.participant.email.toLowerCase().trim()
+        );
+        return [submissionWithId, ...filtered];
+      });
+      
       setCurrentSubmission(submissionWithId);
       navigateToTab("success");
     } catch (err) {
-      console.error("Submission failed:", err);
-      // Custom visual confirmation inside FormularioRegistro is robust,
-      // fallback to saving local and showing success with direct storage
+      console.error("Submission failed, using local storage fallback:", err);
+      
+      // Fallback: saveSubmission already successfully wrote to browser localStorage during step 1.
+      // We will generate/reuse a local-prefixed ID to let the user proceed seamlessly to their receipt.
+      const localId = sub.id || "local_" + Date.now();
+      const submissionWithId = { ...sub, id: localId };
+      
+      setSubmissions((prev) => {
+        const filtered = prev.filter(
+          (s) => s.participant.email.toLowerCase().trim() !== sub.participant.email.toLowerCase().trim()
+        );
+        return [submissionWithId, ...filtered];
+      });
+      
+      setCurrentSubmission(submissionWithId);
+      navigateToTab("success");
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +184,7 @@ export default function App() {
 
     for (const person of mockNames) {
       // Create random predictions
-      const predictions: { [matchId: number]: { homeScore: number; awayScore: number } } = {};
+      const predictions: { [matchId: number]: { homeScore: number | ""; awayScore: number | "" } } = {};
       MATCHES.forEach((m) => {
         // Guarantee random score in predictions to be fully completed as expected for simulated submissions
         predictions[m.id] = {
@@ -272,13 +315,21 @@ export default function App() {
                       >
                         <PenTool className="w-4.5 h-4.5 stroke-[2.5]" /> Registrar Marcadores
                       </button>
+
+                      <button
+                        id="hero-btn-edit"
+                        onClick={scrollToRecovery}
+                        className="bg-white/5 hover:bg-white/12 border border-white/10 text-[#00FF00] hover:text-white font-bold py-4.5 px-8 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-sm uppercase tracking-tighter"
+                      >
+                        <Clock className="w-4.5 h-4.5 text-[#00FF00]/70" /> Editar Quiniela
+                      </button>
                       
                       <button
                         id="hero-btn-list"
                         onClick={() => setActiveTab("list")}
                         className="bg-white/5 hover:bg-white/15 text-white border border-white/10 font-bold py-4.5 px-8 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer text-sm uppercase tracking-tighter"
                       >
-                        <ClipboardList className="w-4.5 h-4.5 text-white/50" /> Ver Jugadores Inscritos
+                        <ClipboardList className="w-4.5 h-4.5 text-white/50" /> Ver Jugadores
                       </button>
                     </div>
                   </div>
@@ -359,6 +410,126 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Recuperar / Continuar Quiniela Widget */}
+                  <div className="bg-white/2 border border-white/10 rounded-2xl p-6 shadow-md relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-[#00FF00]/5 rounded-full blur-xl pointer-events-none" />
+                    
+                    <span className="text-[10px] uppercase tracking-widest text-[#00FF00] block mb-1 font-mono">Control de Avance</span>
+                    <h3 className="font-bold text-white italic font-serif text-2xl border-b border-white/10 pb-3 mb-5 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-[#00FF00]" /> Recuperar Quiniela
+                    </h3>
+                    
+                    <p className="text-xs text-white/50 leading-relaxed mb-4">
+                      ¿Ya te registraste y quieres completar tus pronósticos o descargar tu recibo? Ingresa tu correo para continuar de inmediato.
+                    </p>
+
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/30">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <input
+                          id="txt-search-resume-email"
+                          type="email"
+                          placeholder="tu-correo@ejemplo.com"
+                          value={searchEmailInput}
+                          onChange={(e) => {
+                            setSearchEmailInput(e.target.value);
+                            setSearchEmailFeedback(null);
+                          }}
+                          className="block w-full pl-9 pr-3 py-2.5 bg-[#121212] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded-lg text-xs font-medium text-white transition-all placeholder-white/20 focus:outline-none"
+                        />
+                      </div>
+
+                      {searchEmailFeedback && (
+                        <div className={`p-4 rounded-xl border text-[11px] leading-relaxed animate-fade-in ${
+                          searchEmailFeedback.success 
+                            ? "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00]" 
+                            : "bg-amber-500/10 border-amber-500/20 text-yellow-400"
+                        }`}>
+                          {searchEmailFeedback.success ? (
+                            <div className="text-left font-sans">
+                              <p className="font-bold text-white mb-1 uppercase tracking-tight text-xs">¡Quiniela Encontrada!</p>
+                              <p className="text-white/70">
+                                Hola <strong>{searchEmailFeedback.name}</strong>, tienes <strong>{searchEmailFeedback.count}/72</strong> partidos pronosticados.
+                              </p>
+                              <div className="flex gap-2 mt-3.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResumeEmail(searchEmailInput.trim().toLowerCase());
+                                    navigateToTab("register");
+                                  }}
+                                  className="flex-1 py-2 px-2.5 bg-[#00FF00] hover:bg-white text-black font-black uppercase rounded text-[10px] tracking-tight cursor-pointer transition-colors text-center"
+                                >
+                                  Reanudar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleSelectParticipantReceipt(searchEmailFeedback.submission);
+                                  }}
+                                  className="py-2 px-2.5 bg-white/5 hover:bg-white/15 text-white border border-white/10 rounded text-[10px] uppercase font-bold cursor-pointer transition-colors"
+                                >
+                                  Ver Recibo
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-left font-sans">
+                              <p className="font-bold text-white mb-1 uppercase tracking-tight text-xs">Sin registros</p>
+                              <p className="text-white/70">
+                                El correo ingresado no se encuentra registrado aún como participante. ¡Inicia tu marcador ahora!
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigateToTab("register");
+                                }}
+                                className="mt-2.5 w-full py-2 bg-white/5 hover:bg-white text-white hover:text-black font-bold uppercase rounded text-[10px] border border-white/10 transition-colors cursor-pointer text-center"
+                              >
+                                Comenzar Nueva
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {!searchEmailFeedback && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const trimmed = searchEmailInput.trim().toLowerCase();
+                            if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                              setSearchEmailFeedback({
+                                success: false
+                              });
+                              return;
+                            }
+                            const found = submissions.find(
+                              (s) => s.participant.email.toLowerCase().trim() === trimmed
+                            );
+                            if (found) {
+                              setSearchEmailFeedback({
+                                success: true,
+                                name: found.participant.name,
+                                count: found.totalMatchesPredicted,
+                                submission: found
+                              });
+                            } else {
+                              setSearchEmailFeedback({
+                                success: false
+                              });
+                            }
+                          }}
+                          className="w-full py-2.5 bg-[#00FF00] hover:bg-white text-black font-black rounded-lg transition-colors text-xs uppercase tracking-tighter cursor-pointer text-center"
+                        >
+                          Buscar Quiniela
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Recent Activity widget */}
                   <div className="bg-white/2 border border-white/10 rounded-2xl p-6 shadow-md">
                     <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
@@ -411,6 +582,8 @@ export default function App() {
                   onSuccess={handleSubmissionSuccess} 
                   isSubmitting={isSubmitting} 
                   submissions={submissions}
+                  initialEmail={resumeEmail}
+                  onClearInitialEmail={() => setResumeEmail("")}
                 />
               </div>
             )}
