@@ -174,7 +174,12 @@ export function generateSpreadsheetPasteableText(
   matches: Match[]
 ): string {
   let text = `ID_PARTIDO\tGRUPO\tEQUIPO_LOCAL\tGOLES_LOCAL\tGOLES_VISITANTE\tEQUIPO_VISITANTE\n`;
+  let lastGroup: string | null = null;
   matches.forEach((m) => {
+    if (lastGroup !== null && lastGroup !== m.group) {
+      text += `\n`;
+    }
+    lastGroup = m.group;
     const pred = predictions[m.id];
     const hScore = pred !== undefined && pred.homeScore !== undefined ? pred.homeScore : 0;
     const aScore = pred !== undefined && pred.awayScore !== undefined ? pred.awayScore : 0;
