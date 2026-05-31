@@ -176,6 +176,40 @@ export default function App() {
     }
   };
 
+  const handleUpdateSubmissionPin = async (id: string | undefined, email: string, submittedAt: string, newPin: string) => {
+    try {
+      const foundIdx = submissions.findIndex(
+        (s) => s.participant.email === email && s.submittedAt === submittedAt
+      );
+      if (foundIdx === -1) return;
+      
+      const updatedSubmission = {
+        ...submissions[foundIdx],
+        participant: {
+          ...submissions[foundIdx].participant,
+          pin: newPin,
+        },
+      };
+
+      const docId = await saveSubmission(updatedSubmission);
+      updatedSubmission.id = docId;
+
+      setSubmissions((prev) => {
+        const copy = [...prev];
+        copy[foundIdx] = updatedSubmission;
+        return copy;
+      });
+
+      // Update current submission if it matches
+      if (currentSubmission && currentSubmission.participant.email === email && currentSubmission.submittedAt === submittedAt) {
+        setCurrentSubmission(updatedSubmission);
+      }
+    } catch (err) {
+      console.error("Failed to update PIN:", err);
+      throw err;
+    }
+  };
+
   const handleGenerateMockData = async () => {
     const mockNames = [
       { name: "Julio Augusto", email: "julio.augusto@test.com", phone: "+51999888777" },
@@ -693,6 +727,7 @@ export default function App() {
                   isFirebaseConnected={isFirebaseConfigured}
                   onDeleteSubmission={handleDeleteSubmission}
                   onGenerateMockData={handleGenerateMockData}
+                  onUpdateSubmissionPin={handleUpdateSubmissionPin}
                 />
               </div>
             )}

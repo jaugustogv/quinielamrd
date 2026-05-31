@@ -31,6 +31,7 @@ interface ListaParticipantesProps {
   isFirebaseConnected: boolean;
   onDeleteSubmission?: (id: string | undefined, email: string, submittedAt: string) => Promise<void>;
   onGenerateMockData?: () => Promise<void>;
+  onUpdateSubmissionPin?: (id: string | undefined, email: string, submittedAt: string, newPin: string) => Promise<void>;
 }
 
 export default function ListaParticipantes({ 
@@ -39,7 +40,8 @@ export default function ListaParticipantes({
   onSelectSubmission,
   isFirebaseConnected,
   onDeleteSubmission,
-  onGenerateMockData
+  onGenerateMockData,
+  onUpdateSubmissionPin
 }: ListaParticipantesProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem("isAdmin") === "true");
@@ -50,6 +52,24 @@ export default function ListaParticipantes({
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isGeneratingMock, setIsGeneratingMock] = useState(false);
+
+  // Admin PIN configuration states
+  const [adminPin, setAdminPin] = useState(() => localStorage.getItem("admin_pin_key") || "2026");
+  const [showChangeAdminPinModal, setShowChangeAdminPinModal] = useState(false);
+  const [newAdminPinInput, setNewAdminPinInput] = useState("");
+  const [adminChangeError, setAdminChangeError] = useState("");
+
+  // Edit Player PIN states
+  const [editingPlayerPin, setEditingPlayerPin] = useState<{
+    id: string | undefined;
+    email: string;
+    submittedAt: string;
+    name: string;
+    currentPin: string;
+  } | null>(null);
+  const [newPlayerPinInput, setNewPlayerPinInput] = useState("");
+  const [playerPinError, setPlayerPinError] = useState("");
+  const [isUpdatingPin, setIsUpdatingPin] = useState(false);
 
   const handleGenerateTestParticipants = async () => {
     if (!onGenerateMockData) return;
@@ -91,7 +111,7 @@ export default function ListaParticipantes({
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPinInput === "2026") {
+    if (adminPinInput === adminPin) {
       setIsAdmin(true);
       sessionStorage.setItem("isAdmin", "true");
       setShowAdminModal(false);
@@ -99,6 +119,53 @@ export default function ListaParticipantes({
       setAdminError("");
     } else {
       setAdminError("PIN de Control Incorrecto. Inténtalo de nuevo.");
+    }
+  };
+
+  const handleSaveAdminPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pin = newAdminPinInput.trim();
+    if (!pin) {
+      setAdminChangeError("El PIN no puede estar vacío.");
+      return;
+    }
+    if (pin.length < 4) {
+      setAdminChangeError("El nuevo PIN debe tener al menos 4 caracteres.");
+      return;
+    }
+    localStorage.setItem("admin_pin_key", pin);
+    setAdminPin(pin);
+    setShowChangeAdminPinModal(false);
+  };
+
+  const handleUpdatePlayerPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlayerPin || !onUpdateSubmissionPin) return;
+
+    const pin = newPlayerPinInput.trim();
+    if (!pin) {
+      setPlayerPinError("El PIN no puede estar vacío.");
+      return;
+    }
+    if (pin.length < 4) {
+      setPlayerPinError("El PIN debe tener al menos 4 caracteres.");
+      return;
+    }
+
+    setIsUpdatingPin(true);
+    try {
+      await onUpdateSubmissionPin(
+        editingPlayerPin.id,
+        editingPlayerPin.email,
+        editingPlayerPin.submittedAt,
+        pin
+      );
+      setEditingPlayerPin(null);
+    } catch (err) {
+      setPlayerPinError("Error al actualizar el PIN.");
+      console.error(err);
+    } finally {
+      setIsUpdatingPin(false);
     }
   };
 
@@ -153,18 +220,33 @@ export default function ListaParticipantes({
 
           {/* Admin Unlock Trigger Button */}
           {isAdmin ? (
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <span className="px-3 py-1 text-[9px] font-mono font-bold text-red-400 bg-red-400/10 border border-red-400/20 rounded-full flex items-center gap-1 shadow-sm uppercase">
                 🛠️ Modo Administrador
               </span>
-              <button
-                id="btn-admin-logout"
-                type="button"
-                onClick={handleAdminLogout}
-                className="text-[10px] font-mono font-black text-white/60 hover:text-[#00FF00] underline uppercase cursor-pointer"
-              >
-                Salir
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  id="btn-admin-change-pin"
+                  type="button"
+                  onClick={() => {
+                    setNewAdminPinInput(adminPin);
+                    setAdminChangeError("");
+                    setShowChangeAdminPinModal(true);
+                  }}
+                  className="text-[10px] font-mono font-black text-white/60 hover:text-[#00FF00] underline uppercase cursor-pointer"
+                  title="Cambiar PIN del Administrador"
+                >
+                  Cambiar PIN Admin
+                </button>
+                <button
+                  id="btn-admin-logout"
+                  type="button"
+                  onClick={handleAdminLogout}
+                  className="text-[10px] font-mono font-black text-white/40 hover:text-[#00FF00] underline uppercase cursor-pointer"
+                >
+                  Salir
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -291,13 +373,35 @@ export default function ListaParticipantes({
                     <h3 className="font-bold text-white text-base">
                       {sub.participant.name}
                     </h3>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 mt-1 text-xs text-white/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 mt-1.5 text-xs text-white/50 flex-wrap">
                       <span className="flex items-center gap-1.5 truncate max-w-[170px] sm:max-w-none">
                         <Mail className="w-3.5 h-3.5 text-white/30" /> {sub.participant.email}
                       </span>
                       {sub.participant.phone && (
                         <span className="flex items-center gap-1.5">
                           <Phone className="w-3.5 h-3.5 text-white/30" /> {sub.participant.phone}
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <span className="flex items-center gap-1.5 text-[#00FF00] font-mono bg-[#00FF00]/5 px-2 py-0.5 rounded border border-[#00FF00]/10">
+                          <Lock className="w-3 h-3 text-[#00FF00]/60" /> PIN: <strong className="text-white font-black">{sub.participant.pin || "Sin PIN"}</strong>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPlayerPin({
+                                id: sub.id,
+                                email: sub.participant.email,
+                                submittedAt: sub.submittedAt,
+                                name: sub.participant.name,
+                                currentPin: sub.participant.pin || ""
+                              });
+                              setNewPlayerPinInput(sub.participant.pin || "");
+                              setPlayerPinError("");
+                            }}
+                            className="ml-1 text-[10px] font-mono font-black text-[#00FF00]/80 hover:text-white underline uppercase cursor-pointer"
+                          >
+                            Editar
+                          </button>
                         </span>
                       )}
                     </div>
@@ -470,6 +574,124 @@ export default function ListaParticipantes({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Change Administrator PIN modal */}
+      {showChangeAdminPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-left">
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-full w-fit mx-auto text-yellow-400">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="text-xl font-bold font-serif italic text-white">Cambiar PIN Administrador</h3>
+              <p className="text-[11px] text-white/50 leading-relaxed">
+                Define un nuevo PIN de seguridad para acceder al Panel de Control de Administrador.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveAdminPin} className="space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 font-mono">Nuevo PIN de Seguridad</label>
+                <input
+                  type="text"
+                  placeholder="Ej. 1234"
+                  value={newAdminPinInput}
+                  onChange={(e) => {
+                    setNewAdminPinInput(e.target.value.slice(0, 10));
+                    if (adminChangeError) setAdminChangeError("");
+                  }}
+                  className="block w-full px-4 py-2.5 bg-[#121212] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/15 rounded-lg text-center text-lg font-mono font-bold text-white placeholder-white/20 focus:outline-none"
+                  maxLength={10}
+                  autoFocus
+                />
+                {adminChangeError && (
+                  <p className="text-red-400 text-[11px] font-mono text-center mt-2 flex items-center justify-center gap-1 font-bold">
+                    <AlertCircle className="w-3.5 h-3.5" /> {adminChangeError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowChangeAdminPinModal(false)}
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#00FF00] hover:bg-white text-black rounded-lg text-xs font-black transition-colors cursor-pointer uppercase tracking-tight text-center"
+                >
+                  Guardar PIN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Edit Player PIN modal */}
+      {editingPlayerPin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-left">
+            <div className="p-3 bg-[#00FF00]/10 border border-[#00FF00]/20 rounded-full w-fit mx-auto text-[#00FF00]">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="text-xl font-bold font-serif italic text-white">Editar PIN de Jugador</h3>
+              <p className="text-[11px] text-white/50 leading-relaxed">
+                Modifica la clave de seguridad de <strong className="text-white">{editingPlayerPin.name}</strong> para que pueda reanudar o editar su quiniela.
+              </p>
+            </div>
+
+            <form onSubmit={handleUpdatePlayerPin} className="space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 font-mono">Nuevo PIN (Mínimo 4 dígitos)</label>
+                <input
+                  type="text"
+                  placeholder="Ej. 1122"
+                  value={newPlayerPinInput}
+                  onChange={(e) => {
+                    setNewPlayerPinInput(e.target.value.slice(0, 10));
+                    if (playerPinError) setPlayerPinError("");
+                  }}
+                  className="block w-full px-4 py-2.5 bg-[#121212] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/15 rounded-lg text-center text-lg font-mono font-bold text-white placeholder-white/20 focus:outline-none"
+                  maxLength={10}
+                  autoFocus
+                />
+                {playerPinError && (
+                  <p className="text-red-400 text-[11px] font-mono text-center mt-2 flex items-center justify-center gap-1 font-bold">
+                    <AlertCircle className="w-3.5 h-3.5" /> {playerPinError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={isUpdatingPin}
+                  onClick={() => setEditingPlayerPin(null)}
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPin}
+                  className="flex-1 py-2.5 bg-[#00FF00] hover:bg-white text-black rounded-lg text-xs font-black transition-colors cursor-pointer uppercase tracking-tight text-center flex items-center justify-center gap-1"
+                >
+                  {isUpdatingPin ? (
+                    <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+                  ) : (
+                    "Confirmar PIN"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
