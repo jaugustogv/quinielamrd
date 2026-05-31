@@ -21,7 +21,7 @@ import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
 import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
-import { getAllSubmissions, saveSubmission, deleteSubmission } from "./storage";
+import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions } from "./storage";
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
@@ -43,6 +43,8 @@ export default function App() {
   useEffect(() => {
     async function fetchSubmissions() {
       try {
+        // Try to push local registrations to Firebase Firestore if online/active
+        await syncLocalSubmissions();
         const data = await getAllSubmissions();
         setSubmissions(data);
       } catch (err) {

@@ -157,3 +157,38 @@ export async function deleteSubmission(id: string | undefined, email: string, su
   }
 }
 
+/**
+ * Automatically syncs local submissions to Cloud Firestore if Firebase is connected.
+ * This heals cases where users registered on their device while offline or in LocalStorage fallback mode,
+ * and then visit the page again once Firebase configurations are active.
+ */
+export async function syncLocalSubmissions(): Promise<void> {
+  if (!isFirebaseConfigured || !db) return;
+  try {
+    const locals = getLocalSubmissions();
+    if (locals.length === 0) return;
+
+    const colPath = "submissions";
+    const q = query(collection(db, colPath));
+    const snapshot = await getDocs(q);
+    const fbEmails = new Set<string>();
+    
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data && data.participant && data.participant.email) {
+        fbEmails.add(data.participant.email.toLowerCase().trim());
+      }
+    });
+
+    for (const local of locals) {
+      const email = local.participant.email.toLowerCase().trim();
+      if (!fbEmails.has(email)) {
+        await saveSubmission(local);
+        console.log(`Auto-synced local submission for ${email} to Cloud Firestore.`);
+      }
+    }
+  } catch (err) {
+    console.warn("Could not auto-sync local submissions to Firebase:", err);
+  }
+}
+
