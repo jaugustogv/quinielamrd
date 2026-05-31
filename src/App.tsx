@@ -606,6 +606,7 @@ export default function App() {
               <div className="animate-fade-in">
                 <ListaParticipantes 
                   submissions={submissions} 
+                  currentSubmission={currentSubmission}
                   onSelectSubmission={handleSelectParticipantReceipt}
                   isFirebaseConnected={isFirebaseConfigured}
                   onDeleteSubmission={handleDeleteSubmission}

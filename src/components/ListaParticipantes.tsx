@@ -26,6 +26,7 @@ import { QuinielaSubmission } from "../types";
 
 interface ListaParticipantesProps {
   submissions: QuinielaSubmission[];
+  currentSubmission: QuinielaSubmission | null;
   onSelectSubmission: (submission: QuinielaSubmission) => void;
   isFirebaseConnected: boolean;
   onDeleteSubmission?: (id: string | undefined, email: string, submittedAt: string) => Promise<void>;
@@ -34,6 +35,7 @@ interface ListaParticipantesProps {
 
 export default function ListaParticipantes({ 
   submissions, 
+  currentSubmission,
   onSelectSubmission,
   isFirebaseConnected,
   onDeleteSubmission,
@@ -307,19 +309,46 @@ export default function ListaParticipantes({
                     <p className="text-[10px] text-white/40 font-mono uppercase tracking-wider flex items-center gap-1 sm:justify-end">
                       <Calendar className="w-3.5 h-3.5 text-white/30" /> {formattedDate}
                     </p>
-                    <p className="text-xs font-mono font-bold text-[#00FF00] mt-1 flex items-center gap-1.5 sm:justify-end">
-                      <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / 72 Partidos
-                    </p>
+                    <div className="mt-1.5 flex flex-col items-start sm:items-end gap-1">
+                      <p className="text-xs font-mono font-bold text-[#00FF00] flex items-center gap-1.5 sm:justify-end">
+                        <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / 72 Partidos
+                      </p>
+                      {/* Percent Fill & Visual Meter */}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
+                          {Math.round((sub.totalMatchesPredicted / 72) * 100)}% Completado
+                        </span>
+                        <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden shrink-0 hidden sm:block">
+                          <div 
+                            className="bg-[#00FF00] h-full rounded-full" 
+                            style={{ width: `${(sub.totalMatchesPredicted / 72) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      id={`btn-view-participant-${idx}`}
-                      onClick={() => onSelectSubmission(sub)}
-                      className="px-4 py-2.5 bg-white/5 hover:bg-[#00FF00] hover:text-black text-white hover:border-transparent border border-white/10 rounded-lg font-black transition-colors flex items-center gap-1.5 text-xs uppercase tracking-tighter cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Ver Recibo <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    {(() => {
+                      const canViewReceipt = isAdmin || (
+                        currentSubmission && 
+                        currentSubmission.participant.email.toLowerCase().trim() === sub.participant.email.toLowerCase().trim()
+                      );
+
+                      return canViewReceipt ? (
+                        <button
+                          id={`btn-view-participant-${idx}`}
+                          onClick={() => onSelectSubmission(sub)}
+                          className="px-4 py-2.5 bg-[#00FF00]/10 hover:bg-[#00FF00] text-[#00FF00] hover:text-black hover:border-transparent border border-[#00FF00]/20 rounded-lg font-black transition-all flex items-center gap-1.5 text-xs uppercase tracking-tighter cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ver Recibo <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <span className="px-3 py-2 border border-white/5 bg-white/2 rounded-lg text-[10px] font-bold text-white/40 uppercase tracking-tight flex items-center gap-1.5 font-mono select-none" title="Los pronósticos están ocultos para evitar copiado.">
+                          <Lock className="w-3.5 h-3.5 text-white/20" /> Privado
+                        </span>
+                      );
+                    })()}
 
                     {isAdmin && onDeleteSubmission && (
                       <button
