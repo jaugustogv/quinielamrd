@@ -35,6 +35,9 @@ export default function App() {
   const [resumeEmail, setResumeEmail] = useState("");
   const [searchEmailInput, setSearchEmailInput] = useState("");
   const [searchEmailFeedback, setSearchEmailFeedback] = useState<any | null>(null);
+  const [searchPinInput, setSearchPinInput] = useState("");
+  const [searchPinError, setSearchPinError] = useState("");
+  const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -436,6 +439,9 @@ export default function App() {
                           onChange={(e) => {
                             setSearchEmailInput(e.target.value);
                             setSearchEmailFeedback(null);
+                            setSearchPinInput("");
+                            setSearchPinError("");
+                            setIsSearchUnlocked(false);
                           }}
                           className="block w-full pl-9 pr-3 py-2.5 bg-[#121212] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded-lg text-xs font-medium text-white transition-all placeholder-white/20 focus:outline-none"
                         />
@@ -448,32 +454,82 @@ export default function App() {
                             : "bg-amber-500/10 border-amber-500/20 text-yellow-400"
                         }`}>
                           {searchEmailFeedback.success ? (
-                            <div className="text-left font-sans">
+                            <div className="text-left font-sans space-y-3">
                               <p className="font-bold text-white mb-1 uppercase tracking-tight text-xs">¡Quiniela Encontrada!</p>
                               <p className="text-white/70">
                                 Hola <strong>{searchEmailFeedback.name}</strong>, tienes <strong>{searchEmailFeedback.count}/72</strong> partidos pronosticados.
                               </p>
-                              <div className="flex gap-2 mt-3.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setResumeEmail(searchEmailInput.trim().toLowerCase());
-                                    navigateToTab("register");
-                                  }}
-                                  className="flex-1 py-2 px-2.5 bg-[#00FF00] hover:bg-white text-black font-black uppercase rounded text-[10px] tracking-tight cursor-pointer transition-colors text-center"
-                                >
-                                  Reanudar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleSelectParticipantReceipt(searchEmailFeedback.submission);
-                                  }}
-                                  className="py-2 px-2.5 bg-white/5 hover:bg-white/15 text-white border border-white/10 rounded text-[10px] uppercase font-bold cursor-pointer transition-colors"
-                                >
-                                  Ver Recibo
-                                </button>
-                              </div>
+                              
+                              {searchEmailFeedback.submission.participant.pin && !isSearchUnlocked ? (
+                                <div className="space-y-2 pt-2 border-t border-white/10">
+                                  <label className="block text-[10px] uppercase font-semibold tracking-wider text-[#00FF00] font-mono">
+                                    Introduce tu PIN de 4 dígitos para acceder:
+                                  </label>
+                                  <div className="relative">
+                                    <input
+                                      type="password"
+                                      maxLength={4}
+                                      inputMode="numeric"
+                                      pattern="\d*"
+                                      placeholder="••••"
+                                      value={searchPinInput}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                        setSearchPinInput(val);
+                                        setSearchPinError("");
+                                        if (val.length === 4) {
+                                          if (val === searchEmailFeedback.submission.participant.pin) {
+                                            setIsSearchUnlocked(true);
+                                            setCurrentSubmission(searchEmailFeedback.submission);
+                                          } else {
+                                            setSearchPinError("PIN de seguridad incorrecto.");
+                                          }
+                                        }
+                                      }}
+                                      className="block w-full text-center py-2 bg-black/40 border border-white/25 focus:border-[#00FF00] rounded-lg text-sm font-mono font-black tracking-[0.5em] text-white focus:outline-none placeholder-white/20"
+                                    />
+                                  </div>
+                                  {searchPinError && (
+                                    <p className="text-red-400 text-[10px] font-mono font-bold">⚠️ {searchPinError}</p>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (searchPinInput === searchEmailFeedback.submission.participant.pin) {
+                                        setIsSearchUnlocked(true);
+                                        setCurrentSubmission(searchEmailFeedback.submission);
+                                      } else {
+                                        setSearchPinError("PIN de seguridad incorrecto.");
+                                      }
+                                    }}
+                                    className="w-full mt-1.5 py-2 bg-[#00FF00] hover:bg-white text-black font-black uppercase rounded text-[10px] tracking-tight cursor-pointer transition-colors text-center font-mono"
+                                  >
+                                    Verificar y Desbloquear
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2 mt-3.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setResumeEmail(searchEmailInput.trim().toLowerCase());
+                                      navigateToTab("register");
+                                    }}
+                                    className="flex-1 py-2 px-2.5 bg-[#00FF00] hover:bg-white text-black font-black uppercase rounded text-[10px] tracking-tight cursor-pointer transition-colors text-center"
+                                  >
+                                    Reanudar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleSelectParticipantReceipt(searchEmailFeedback.submission);
+                                    }}
+                                    className="py-2 px-2.5 bg-white/5 hover:bg-white/15 text-white border border-white/10 rounded text-[10px] uppercase font-bold cursor-pointer transition-colors"
+                                  >
+                                    Ver Recibo
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="text-left font-sans">
@@ -509,6 +565,9 @@ export default function App() {
                             const found = submissions.find(
                               (s) => s.participant.email.toLowerCase().trim() === trimmed
                             );
+                            setSearchPinInput("");
+                            setSearchPinError("");
+                            setIsSearchUnlocked(false);
                             if (found) {
                               setSearchEmailFeedback({
                                 success: true,
@@ -551,23 +610,43 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="space-y-3 font-sans">
-                        {submissions.slice(0, 3).map((sub, idx) => (
-                          <div 
-                            key={sub.id || idx}
-                            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl p-3 flex items-center justify-between text-xs cursor-pointer transition-colors"
-                            onClick={() => handleSelectParticipantReceipt(sub)}
-                          >
-                            <div className="truncate pr-1.5">
-                              <p className="font-bold text-white truncate">{sub.participant.name}</p>
-                              <p className="text-[10px] text-white/40 mt-1 uppercase font-mono">
-                                {new Date(sub.submittedAt).toLocaleDateString()}
-                              </p>
+                        {submissions.slice(0, 3).map((sub, idx) => {
+                          const isOwnSubmission = currentSubmission && currentSubmission.participant.email.toLowerCase().trim() === sub.participant.email.toLowerCase().trim();
+                          
+                          return (
+                            <div 
+                              key={sub.id || idx}
+                              className={`bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between text-xs transition-colors ${
+                                isOwnSubmission ? "cursor-pointer hover:bg-white/15 border-[#00FF00]/30 animate-pulse-subtle" : ""
+                              }`}
+                              onClick={() => {
+                                if (isOwnSubmission) {
+                                  handleSelectParticipantReceipt(sub);
+                                }
+                              }}
+                            >
+                              <div className="truncate pr-1.5 flex flex-col gap-1">
+                                <p className="font-bold text-white truncate flex items-center gap-1.5">
+                                  {sub.participant.name}
+                                  {isOwnSubmission && (
+                                    <span className="text-[9px] bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] px-1.5 py-0.5 rounded font-mono font-black uppercase tracking-tight leading-none">Tú</span>
+                                  )}
+                                </p>
+                                <p className="text-[10px] text-white/40 uppercase font-mono flex items-center gap-1 leading-none">
+                                  {new Date(sub.submittedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
+                                  {Math.round((sub.totalMatchesPredicted / 72) * 100)}%
+                                </span>
+                                <span className="px-2 py-0.5 bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] text-[10px] font-mono font-bold rounded flex items-center gap-1 select-none">
+                                  {!isOwnSubmission && <Lock className="w-2.5 h-2.5 text-[#00FF00]/60 shrink-0" />} {sub.totalMatchesPredicted}/72
+                                </span>
+                              </div>
                             </div>
-                            <span className="px-2.5 py-1 bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] text-[10px] font-mono font-bold rounded">
-                              {sub.totalMatchesPredicted}/72 P.
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
