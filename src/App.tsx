@@ -26,6 +26,7 @@ import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissio
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
+import { APP_VERSION, VERSION_DATE, APP_CHANGELOG, forceBustCacheAndReload } from "./version";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<"home" | "register" | "success" | "list">("home");
@@ -39,6 +40,7 @@ export default function App() {
   const [searchPinInput, setSearchPinInput] = useState("");
   const [searchPinError, setSearchPinError] = useState("");
   const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
+  const [showVersionModal, setShowVersionModal] = useState(false);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -348,7 +350,7 @@ export default function App() {
       </nav>
 
       {/* Hero Header with real-time stats */}
-      <Header totalParticipants={submissions.length} />
+      <Header totalParticipants={submissions.length} onVersionClick={() => setShowVersionModal(true)} />
 
       {/* Main Content Area */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 pb-16 pt-8 sm:px-8 lg:px-12 relative">
@@ -777,20 +779,112 @@ export default function App() {
       {/* Footer / Bottom Rail */}
       <footer className="mt-auto border-t border-white/10 bg-[#000000] py-10 text-center">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] uppercase tracking-[0.25em] font-bold text-white/45">
-          <div>
+          <div className="text-left sm:text-left select-text">
             © 2026 GESTOR DE QUINIELAS DIGITAL • BY @ugusto 
             <span className="text-xs text-[#EF4444] font-mono normal-case tracking-normal ml-1 sm:ml-2 font-bold">(Augusto)</span>
             <span className="text-white/25 font-mono normal-case tracking-normal ml-2 sm:ml-3">
               | codiseñado por el agente inteligente de google studio build
             </span>
           </div>
-          <div className="flex gap-6 font-mono text-[#00FF00]/70">
+          <div className="flex flex-wrap gap-4 items-center justify-center font-mono text-[#00FF00]/70">
+            <button
+              type="button"
+              onClick={() => setShowVersionModal(true)}
+              className="hover:text-[#00FF00] hover:underline underline-offset-4 cursor-pointer select-none text-[10px] uppercase font-bold tracking-[0.20em]"
+            >
+              Versión v{APP_VERSION}
+            </button>
+            <span>|</span>
             <span>SEDE: MX · CA · US</span>
             <span>|</span>
             <span>CONECTADO AL ADMIN PLANILLAS FWC-26</span>
           </div>
         </div>
       </footer>
+
+      {/* Version and Cache Control Modal */}
+      {showVersionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#121212] border border-white/15 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#1A1A1A] border-b border-white/10 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-[#00FF00] rounded-full animate-pulse" />
+                <h3 className="text-sm font-mono uppercase tracking-[0.15em] text-white">Historial de Actualizaciones</h3>
+              </div>
+              <button 
+                onClick={() => setShowVersionModal(false)}
+                className="text-white/40 hover:text-white text-xs px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 transition-all font-mono cursor-pointer"
+              >
+                CERRAR
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-6 text-sm">
+              <div className="flex items-start justify-between border-b border-white/5 pb-4">
+                <div>
+                  <span className="text-[10px] uppercase font-mono text-[#00FF00] tracking-wider select-none font-bold">Versión Instalada</span>
+                  <h4 className="text-2xl font-black italic text-white select-all">v{APP_VERSION}</h4>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-mono text-white/40 tracking-wider">Último Cambio</span>
+                  <p className="text-xs text-white/80 font-mono font-medium">{VERSION_DATE}</p>
+                </div>
+              </div>
+              
+              {/* Force refresh helper info */}
+              <div className="bg-[#0A0A0A] border border-white/5 p-4 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-white/80 font-mono tracking-wide">¿Los cambios no aparecen?</span>
+                  <span className="text-[9px] font-mono text-[#EF4444]">CERO CONFLICTOS</span>
+                </div>
+                <p className="text-xs text-[#CCCCCC] leading-relaxed font-sans">
+                  Si tu navegador guardó una copia antigua en caché y no visualizas tus cambios, puedes limpiar el almacenamiento interno de la app pulsando este botón. Tus datos de predicción locales NO se perderán.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("¿Estás seguro de que deseas refrescar y limpiar el caché local? Se reinstalarán los recursos de inmediato para asegurar conexión limpia.")) {
+                      forceBustCacheAndReload();
+                    }
+                  }}
+                  className="w-full bg-[#00FF00] hover:bg-[#00FF00]/80 active:scale-[0.99] text-black font-extrabold py-2 px-3 rounded uppercase tracking-wider font-sans select-none cursor-pointer transition-all border border-transparent shadow-lg text-xs"
+                >
+                  ⚡ Vaciar Caché y Forzar Recarga
+                </button>
+              </div>
+
+              {/* Version List */}
+              <div className="space-y-4">
+                <span className="text-[10px] uppercase font-mono text-white/40 tracking-widest block font-bold">Cronología de Versiones</span>
+                <div className="space-y-4 border-l border-white/5 pl-3">
+                  {APP_CHANGELOG.map((item) => (
+                    <div key={item.version} className="relative group">
+                      <div className="absolute -left-[16.5px] top-1.5 w-2 h-2 rounded-full border border-[#121212] bg-[#00FF00]/40 group-hover:bg-[#00FF00] transition-colors" />
+                      <div className="space-y-1">
+                        <div className="flex items-baseline justify-between select-none">
+                          <span className="font-mono text-xs font-bold text-white/95">
+                            v{item.version}
+                          </span>
+                          <span className="text-[9px] font-mono text-white/40">{item.date}</span>
+                        </div>
+                        <p className="text-[11px] text-[#00FF00] font-semibold">{item.title}</p>
+                        <p className="text-[11px] text-white/60 leading-relaxed font-sans">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-[#1A1A1A] border-t border-white/10 text-center select-none">
+              <span className="text-[9px] font-mono text-white/35 uppercase tracking-[0.2em]">DESARROLLADO EN CHILE PARA EL MUNDO • 2026</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

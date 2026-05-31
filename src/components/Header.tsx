@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Sparkles, Trophy, Users } from "lucide-react";
+import { Sparkles, Trophy, Users, Info } from "lucide-react";
+import { APP_VERSION } from "../version";
 
 interface HeaderProps {
   totalParticipants: number;
+  onVersionClick?: () => void;
 }
 
-export default function Header({ totalParticipants }: HeaderProps) {
+export default function Header({ totalParticipants, onVersionClick }: HeaderProps) {
   return (
     <header className="relative bg-[#0A0A0A] border-b border-white/10 text-white px-6 py-8 sm:px-12">
       {/* Decorative background logo track */}
@@ -25,17 +27,31 @@ export default function Header({ totalParticipants }: HeaderProps) {
             Plataforma Oficial de Pronósticos
           </span>
           <div className="flex flex-col items-start mb-0.5">
-            <div className="flex items-baseline gap-2.5">
+            <div className="flex flex-wrap items-baseline gap-2.5">
               <h1 className="text-4xl sm:text-5xl font-black tracking-tighter italic font-sans flex items-center">
                 Quinielas<span className="text-[#00FF00] font-black non-italic">MRD</span>
               </h1>
-              <span className="bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] px-2 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold tracking-wider align-middle">
-                Fase 1
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold tracking-wider align-middle">
+                  Fase 1
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-mono font-bold tracking-[0.2em] text-[#EF4444] uppercase mt-1 ml-0.5">
-              By Augusto 2026
-            </span>
+            
+            <div className="flex items-center gap-3 mt-1.5 ml-0.5 flex-wrap">
+              <span className="text-xs font-mono font-bold tracking-[0.2em] text-[#EF4444] uppercase">
+                By Augusto 2026
+              </span>
+              <button
+                type="button"
+                onClick={onVersionClick}
+                className="bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 text-white/50 hover:text-white px-2.5 py-0.5 rounded text-[10px] font-mono font-medium tracking-wider align-middle transition-all flex items-center gap-1 cursor-pointer"
+                title="Ver historial de cambios y vaciar caché"
+              >
+                <span className="inline-block w-1 h-1 bg-[#00FF00] rounded-full animate-pulse"></span>
+                v{APP_VERSION}
+              </button>
+            </div>
           </div>
           <p className="mt-2 text-xs text-white/55 max-w-xl font-sans font-light leading-relaxed">
             Registra tus predicciones deportivas oficiales para los <span className="text-white font-bold pb-0.5 border-b border-[#00FF00]/40">72 encuentros de la fase de grupos</span>. Sincronizado en tiempo real con Google Sheets.
