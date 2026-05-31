@@ -171,20 +171,42 @@ export async function syncLocalSubmissions(): Promise<void> {
     const colPath = "submissions";
     const q = query(collection(db, colPath));
     const snapshot = await getDocs(q);
-    const fbEmails = new Set<string>();
+    
+    // Map email (lowercase) to the current Firestore document
+    const fbSubmissions = new Map<string, QuinielaSubmission>();
     
     snapshot.forEach((doc) => {
       const data = doc.data();
       if (data && data.participant && data.participant.email) {
-        fbEmails.add(data.participant.email.toLowerCase().trim());
+        const emailKey = data.participant.email.toLowerCase().trim();
+        fbSubmissions.set(emailKey, {
+          id: doc.id,
+          ...data
+        } as QuinielaSubmission);
       }
     });
 
     for (const local of locals) {
       const email = local.participant.email.toLowerCase().trim();
-      if (!fbEmails.has(email)) {
-        await saveSubmission(local);
-        console.log(`Auto-synced local submission for ${email} to Cloud Firestore.`);
+      const fbSub = fbSubmissions.get(email);
+      
+      const localCount = local.totalMatchesPredicted || 0;
+      const fbCount = fbSub ? (fbSub.totalMatchesPredicted || 0) : 0;
+      
+      // Determine if local is newer
+      const isNewer = fbSub && new Date(local.submittedAt).getTime() > new Date(fbSub.submittedAt).getTime();
+      
+      // Overwrite if:
+      // 1. Not present in Firestore
+      // 2. OR local has predicted more matches than Firestore (e.g. 72 matches on phone vs 6 on CPU)
+      // 3. OR they have the same match count but local is newer/newer timestamp
+      if (!fbSub || localCount > fbCount || (localCount === fbCount && isNewer)) {
+        const updatedLocal = {
+          ...local,
+          id: fbSub ? fbSub.id : (local.id && !local.id.startsWith("local_") ? local.id : undefined)
+        };
+        const finalId = await saveSubmission(updatedLocal);
+        console.log(`Auto-synced local submission for ${email} to Cloud Firestore. Document ID: ${finalId}`);
       }
     }
   } catch (err) {

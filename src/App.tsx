@@ -24,7 +24,7 @@ import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
 import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions } from "./storage";
 import { QuinielaSubmission } from "./types";
-import { isFirebaseConfigured, checkFirebaseHealth } from "./firebase";
+import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
 
 export default function App() {
@@ -39,31 +39,61 @@ export default function App() {
   const [searchPinInput, setSearchPinInput] = useState("");
   const [searchPinError, setSearchPinError] = useState("");
   const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
-  const [firebaseDiagnosticError, setFirebaseDiagnosticError] = useState<string | null>(null);
 
   // Fetch registered submissions from storage
   useEffect(() => {
-    async function fetchSubmissions() {
+    async function syncAndLoadSubmissions() {
       try {
-        // Validate database connection health at initialization
-        const health = await checkFirebaseHealth();
-        if (!health.healthy) {
-          setFirebaseDiagnosticError(health.error);
-        } else {
-          setFirebaseDiagnosticError(null);
-        }
-        // Try to push local registrations to Firebase Firestore if online/active
         await syncLocalSubmissions();
         const data = await getAllSubmissions();
         setSubmissions(data);
-      } catch (err: any) {
-        console.error("Error fetching submissions:", err);
-        setFirebaseDiagnosticError(err.message || String(err));
+      } catch (err) {
+        console.warn("Silent sync error on load:", err);
+        // Load fallback local items if Firestore fails
+        try {
+          const data = await getAllSubmissions();
+          setSubmissions(data);
+        } catch (e) {
+          console.error("Fallback load failed:", e);
+        }
       } finally {
         setLoading(false);
       }
     }
-    fetchSubmissions();
+    syncAndLoadSubmissions();
+
+    // Setup an automatic dynamic sync every 15 seconds to sync behind the scenes
+    const interval = setInterval(async () => {
+      try {
+        await syncLocalSubmissions();
+        const data = await getAllSubmissions();
+        setSubmissions(data);
+      } catch (err) {
+        console.warn("Background sync error:", err);
+      }
+    }, 15000);
+
+    // Setup automatic sync when the user switches tabs back or focuses the window/tab
+    const handleVisibilityAndSync = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          await syncLocalSubmissions();
+          const data = await getAllSubmissions();
+          setSubmissions(data);
+        } catch (err) {
+          console.warn("Auto-sync on window focus failed:", err);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityAndSync);
+    window.addEventListener("focus", handleVisibilityAndSync);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityAndSync);
+      window.removeEventListener("focus", handleVisibilityAndSync);
+    };
   }, []);
 
   // Synchronize state and trigger routing from search params (?tab=list) or hashes (#list) on initial load and navigation popstate/hashchange
@@ -145,11 +175,9 @@ export default function App() {
       });
       
       setCurrentSubmission(submissionWithId);
-      setFirebaseDiagnosticError(null); // Clear errors since cloud write worked
       navigateToTab("success");
     } catch (err: any) {
       console.error("Submission failed, using local storage fallback:", err);
-      setFirebaseDiagnosticError(err.message || String(err));
       
       // Fallback: saveSubmission already successfully wrote to browser localStorage during step 1.
       // We will generate/reuse a local-prefixed ID to let the user proceed seamlessly to their receipt.
@@ -324,49 +352,6 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 pb-16 pt-8 sm:px-8 lg:px-12 relative">
-        
-        {firebaseDiagnosticError && (
-          <div className="mb-8 bg-red-950/40 border border-red-500/20 text-red-200 rounded-xl p-5 text-xs font-mono space-y-3 max-w-3xl mx-auto shadow-lg animate-fade-in relative overflow-hidden backdrop-blur-md">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex flex-wrap items-center gap-2.5 font-bold font-sans text-red-400">
-              <span className="text-sm">⚠️</span>
-              <span className="uppercase tracking-wider">Error de Sincronización en la Nube (Firebase)</span>
-              <span className="px-2 py-0.5 text-[9px] bg-red-500/20 rounded font-mono font-bold text-red-200">DATOS NO PUBLICADOS</span>
-            </div>
-            <p className="text-white/70 leading-relaxed font-sans text-xs">
-              Tu navegador no pudo sincronizar los datos con la base de datos central de Google Cloud. Tus marcadores están seguros <strong className="text-white">en la memoria de este navegador</strong>, pero otros dispositivos o tu computadora no verán los jugadores o pronósticos que registraste ayer en este equipo hasta que logres establecer conexión.
-            </p>
-            <div className="bg-black/50 p-3 rounded border border-white/5 text-[10px] text-red-300 break-all select-all font-mono">
-              <strong>Error detectado:</strong> {firebaseDiagnosticError}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const health = await checkFirebaseHealth();
-                    if (health.healthy) {
-                      setFirebaseDiagnosticError(null);
-                    } else {
-                      setFirebaseDiagnosticError(health.error);
-                    }
-                    await syncLocalSubmissions();
-                    const data = await getAllSubmissions();
-                    setSubmissions(data);
-                  } catch (e: any) {
-                    setFirebaseDiagnosticError(e.message || String(e));
-                  }
-                }}
-                className="bg-[#00FF00] hover:bg-[#00FF00]/80 text-black font-extrabold py-2 px-3 rounded uppercase tracking-wider font-sans select-none cursor-pointer transition-all border border-transparent shadow-lg text-[10px]"
-              >
-                🔄 Reintentar Conexión y Auto-Sincronizar
-              </button>
-            </div>
-            <p className="text-white/40 text-[9.5px] font-sans italic">
-              *💡 Consejo: Si realizaste la carga desde tu teléfono, simplemente ingresa desde tu teléfono a esta misma página web y presiona este botón de arriba para forzar el envío de tus {loading ? "partidos" : "registros"} a la nube. ¡Una vez hecho, los verás de inmediato en tu computadora!
-            </p>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-24">
