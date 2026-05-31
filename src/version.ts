@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.1.2";
+export const APP_VERSION = "2.2.1";
 export const VERSION_DATE = "31 de Mayo, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.2.1",
+    date: "31 Mayo 2026",
+    title: "Sincronización de PIN Operador & Reanudación Implícita",
+    description: "Guardado del PIN de Operador en la nube (Firestore) para persistencia instantánea en pestañas de incógnito o dispositivos móviles. Rediseño del flujo de reanudación: al ingresar tu correo te pide únicamente el PIN de seguridad y te envía directo a pronosticar sin rellenar datos redundantes.",
+    type: "minor"
+  },
   {
     version: "2.1.2",
     date: "31 Mayo 2026",

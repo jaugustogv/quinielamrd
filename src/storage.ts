@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { db, isFirebaseConfigured, collection, addDoc, getDocs, query, orderBy, handleFirestoreError, OperationType, doc, deleteDoc, setDoc, where } from "./firebase";
+import { db, isFirebaseConfigured, collection, addDoc, getDocs, query, orderBy, handleFirestoreError, OperationType, doc, deleteDoc, setDoc, where, getDoc } from "./firebase";
 import { QuinielaSubmission } from "./types";
 
 const LOCAL_STORAGE_KEY = "quiniela_submissions_v1";
@@ -229,4 +229,50 @@ export async function syncLocalSubmissions(): Promise<void> {
     console.warn("Could not auto-sync local submissions to Firebase:", err);
   }
 }
+
+/**
+ * Gets the administrator PIN.
+ * If Firebase is configured, it first tries to retrieve it from Firestore ("config/admin").
+ * Falls back to localStorage and finally to "2026".
+ */
+export async function getAdminPin(): Promise<string> {
+  const localDefault = localStorage.getItem("admin_pin_key") || "2026";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && data.pin) {
+          // Sync to localStorage as well
+          localStorage.setItem("admin_pin_key", data.pin);
+          return data.pin;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch admin PIN from Firestore, using local fallback:", e);
+    }
+  }
+  return localDefault;
+}
+
+/**
+ * Saves the administrator PIN.
+ * If Firebase is configured, it writes to Firestore config/admin to sync with other browsers.
+ * Also persists in localStorage.
+ */
+export async function saveAdminPin(newPin: string): Promise<void> {
+  const pin = newPin.trim();
+  localStorage.setItem("admin_pin_key", pin);
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { pin }, { merge: true });
+      console.log("Admin PIN saved successfully to Firestore.");
+    } catch (e) {
+      console.error("Failed to save admin PIN to Firestore:", e);
+    }
+  }
+}
+
 

@@ -55,6 +55,7 @@ export default function FormularioRegistro({
   // Editing state to track if we loaded an existing submission
   const [editingSubmissionId, setEditingSubmissionId] = useState<string | undefined>(undefined);
   const [editingSubmittedAt, setEditingSubmittedAt] = useState<string | undefined>(undefined);
+  const [showEditDetails, setShowEditDetails] = useState(false);
 
   // Match email to find an existing submission
   const foundExistingSubmission = useMemo(() => {
@@ -141,7 +142,6 @@ export default function FormularioRegistro({
   // Validation for Step 1
   const validateStep1 = () => {
     const errs: { name?: string; email?: string; pin?: string } = {};
-    if (!name.trim()) errs.name = "El nombre completo es obligatorio.";
     
     // Email check
     if (!email.trim()) {
@@ -150,13 +150,22 @@ export default function FormularioRegistro({
       errs.email = "Por favor introduce un correo electrónico válido.";
     }
 
-    // PIN check (4-digit numerical passcode)
-    if (!pin.trim()) {
-      errs.pin = "La clave de 4 dígitos es obligatoria para proteger tu quiniela.";
-    } else if (!/^\d{4}$/.test(pin.trim())) {
-      errs.pin = "La clave debe tener exactamente 4 dígitos numéricos (ej. 1234).";
-    } else if (foundExistingSubmission && foundExistingSubmission.participant.pin && foundExistingSubmission.participant.pin !== pin.trim()) {
-      errs.pin = "La clave de seguridad ingresada es incorrecta para este participante.";
+    if (foundExistingSubmission && !editingSubmissionId) {
+      // If we found an existing submission and haven't verified the PIN yet, we only require PIN verification
+      if (!pin.trim()) {
+        errs.pin = "La clave de 4 dígitos es obligatoria para reanudar tu quiniela.";
+      } else if (foundExistingSubmission.participant.pin && foundExistingSubmission.participant.pin !== pin.trim()) {
+        errs.pin = "La clave de seguridad ingresada es incorrecta.";
+      }
+    } else {
+      // New registration or authenticated edit session
+      if (!name.trim()) errs.name = "El nombre completo es obligatorio.";
+      
+      if (!pin.trim()) {
+        errs.pin = "La clave de 4 dígitos es obligatoria para proteger tu quiniela.";
+      } else if (!/^\d{4}$/.test(pin.trim())) {
+        errs.pin = "La clave debe tener exactamente 4 dígitos numéricos (ej. 1234).";
+      }
     }
 
     setErrors(errs);
@@ -335,31 +344,7 @@ export default function FormularioRegistro({
           </div>
 
           <div className="space-y-6">
-            <div>
-              <label id="lbl-name" htmlFor="txt-name" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                Nombre Completo <span className="text-[#00FF00]">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                  <User className="w-5 h-5" />
-                </div>
-                <input
-                  id="txt-name"
-                  type="text"
-                  placeholder="Augusto González"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (e.target.value.trim()) setErrors((prev) => ({ ...prev, name: undefined }));
-                  }}
-                  className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
-                    errors.name ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
-                  } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20`}
-                />
-              </div>
-              {errors.name && <p className="text-xs text-red-400 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.name}</p>}
-            </div>
-
+            {/* CORREO ELECTRÓNICO ALWAYS FIRST */}
             <div>
               <label id="lbl-email" htmlFor="txt-email" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
                 Correo Electrónico <span className="text-[#00FF00]">*</span>
@@ -372,6 +357,7 @@ export default function FormularioRegistro({
                   id="txt-email"
                   type="email"
                   placeholder="nombre@correo.com"
+                  disabled={!!editingSubmissionId}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -379,44 +365,122 @@ export default function FormularioRegistro({
                   }}
                   className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
                     errors.email ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
-                  } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20`}
+                  } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20 disabled:opacity-50`}
                 />
               </div>
               {errors.email && <p className="text-xs text-red-400 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.email}</p>}
+            </div>
 
-              {foundExistingSubmission && (
-                <div className="bg-[#00FF00]/15 border border-[#00FF00]/30 rounded-xl p-4.5 mt-4 text-left animate-fade-in shadow-md">
-                  <p className="text-xs text-white leading-relaxed font-bold flex items-center gap-1.5">
-                    <span className="inline-block w-2.5 h-2.5 bg-[#00FF00] rounded-full animate-ping-slow shrink-0" />
-                    ¡Planilla existente registrada!
-                  </p>
-                  <p className="text-[11px] text-white/75 mt-1.5 leading-normal">
-                    Tienes una participación con <span className="text-[#00FF00] font-mono font-black">{foundExistingSubmission.totalMatchesPredicted}/72</span> partidos ya pronosticados. ¡Ingresa tu clave de 4 dígitos abajo para verificar tu identidad y reanudar o editar tu quiniela!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!pin.trim() || !/^\d{4}$/.test(pin.trim())) {
-                        setErrors((prev) => ({ 
-                          ...prev, 
-                          pin: "Introduce tu PIN de 4 dígitos para poder cargar y editar esta planilla." 
-                        }));
-                        return;
-                      }
+            {foundExistingSubmission && !editingSubmissionId ? (
+              /* STREAMLINED RESUME FLOW (Only PIN is requested; Name and Phone are loaded implicitly) */
+              <div className="bg-[#00FF00]/5 border border-[#00FF00]/20 rounded-xl p-5 space-y-4 animate-fade-in shadow-lg">
+                <div className="flex items-center gap-2.5">
+                  <span className="inline-block w-2 bg-[#00FF00] h-2 rounded-full animate-ping shrink-0" />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#00FF00] font-black">Planilla Registrada Encontrada</span>
+                </div>
+                <p className="text-xs text-white/80 leading-relaxed font-sans">
+                  Hola, <strong className="text-white font-black">{foundExistingSubmission.participant.name}</strong>. Hemos detectado tu participación previa con <span className="text-[#00FF00] font-mono font-extrabold">{foundExistingSubmission.totalMatchesPredicted}/72</span> partidos ya pronosticados.
+                </p>
+                
+                <div className="border-t border-white/5 pt-3.5">
+                  <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                    Ingresa tu PIN de 4 Dígitos <span className="text-[#00FF00]">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <input
+                      id="txt-pin"
+                      type="password"
+                      inputMode="numeric"
+                      pattern="\d*"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={pin}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setPin(val);
+                        if (val.length === 4) {
+                          setErrors((prev) => ({ ...prev, pin: undefined }));
+                        }
+                      }}
+                      className={`block w-full pl-11 pr-4 py-3 bg-white/5 border ${
+                        errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                      } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all`}
+                    />
+                  </div>
+                  {errors.pin && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
+                </div>
+
+                {/* Collapsible / Optional Name and Phone editing */}
+                {showEditDetails ? (
+                  <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in text-left">
+                    <div>
+                      <label id="lbl-name" htmlFor="txt-name" className="block text-[10px] uppercase font-semibold tracking-widest text-white/60 mb-1.5 font-mono">
+                        Nombre Completo
+                      </label>
+                      <input
+                        id="txt-name"
+                        type="text"
+                        placeholder={foundExistingSubmission.participant.name}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="block w-full px-3 py-2 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-xs text-white placeholder-white/20"
+                      />
+                    </div>
+                    <div>
+                      <label id="lbl-phone" htmlFor="txt-phone" className="block text-[10px] uppercase font-semibold tracking-widest text-white/60 mb-1.5 font-mono">
+                        WhatsApp / Celular
+                      </label>
+                      <input
+                        id="txt-phone"
+                        type="tel"
+                        placeholder={foundExistingSubmission.participant.phone || "Ej: +58 412 1234567"}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="block w-full px-3 py-2 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-xs text-white placeholder-white/20"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center pt-1 animate-fade-in">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Pre-populate with currently saved values when toggled
+                        setName(foundExistingSubmission.participant.name);
+                        setPhone(foundExistingSubmission.participant.phone || "");
+                        setShowEditDetails(true);
+                      }}
+                      className="text-[10px] text-white/40 hover:text-[#00FF00] underline uppercase tracking-wider font-mono cursor-pointer transition-colors"
+                    >
+                      ✏️ Editar mis datos (Nombre o Celular)
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  id="btn-go-to-predictions"
+                  onClick={() => {
+                    if (validateStep1()) {
+                      // Check PIN matches
                       if (foundExistingSubmission.participant.pin && foundExistingSubmission.participant.pin !== pin.trim()) {
-                        setErrors((prev) => ({ 
-                          ...prev, 
-                          pin: "La clave PIN de seguridad ingresada es incorrecta." 
-                        }));
+                        setErrors((prev) => ({ ...prev, pin: "La clave PIN de seguridad ingresada es incorrecta." }));
                         return;
                       }
-
-                      setName(foundExistingSubmission.participant.name);
-                      setPhone(foundExistingSubmission.participant.phone || "");
+                      
+                      // Auto-apply Name/Phone unless they edited them explicitly in showEditDetails
+                      const finalName = name.trim() ? name.trim() : foundExistingSubmission.participant.name;
+                      const finalPhone = phone.trim() ? phone.trim() : (foundExistingSubmission.participant.phone || "");
+                      
+                      setName(finalName);
+                      setPhone(finalPhone);
                       setEditingSubmissionId(foundExistingSubmission.id);
                       setEditingSubmittedAt(foundExistingSubmission.submittedAt);
                       
-                      // Map predictions safely
+                      // Map predictions
                       const loadedPredictions: any = {};
                       MATCHES.forEach((m) => {
                         const pred = foundExistingSubmission.predictions[m.id];
@@ -427,82 +491,106 @@ export default function FormularioRegistro({
                       });
                       setPredictions(loadedPredictions);
                       setStep(2);
-                    }}
-                    className="mt-3 w-full bg-[#00FF00] hover:bg-white text-black font-black text-xs py-2.5 px-3 rounded-lg transition-all active:scale-[0.98] cursor-pointer text-center font-mono flex items-center justify-center gap-2 uppercase tracking-tight"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Reanudar y Editar Planilla
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label id="lbl-phone" htmlFor="txt-phone" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                WhatsApp / Celular <span className="text-white/30 font-normal font-sans">(Opcional)</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                  <Phone className="w-5 h-5" />
-                </div>
-                <input
-                  id="txt-phone"
-                  type="tel"
-                  placeholder="Ej: +58 412 1234567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20"
-                />
-              </div>
-              <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
-                Utilizado para generar el enlace directo que envía tus marcadores en un solo bloque a WhatsApp.
-              </p>
-            </div>
-
-            <div>
-              <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                Clave PIN de Seguridad <span className="text-[#00FF00]">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                  <Lock className="w-5 h-5 text-white/30" />
-                </div>
-                <input
-                  id="txt-pin"
-                  type="password"
-                  inputMode="numeric"
-                  pattern="\d*"
-                  maxLength={4}
-                  placeholder="••••"
-                  value={pin}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                    setPin(val);
-                    if (val.length === 4) {
-                      setErrors((prev) => ({ ...prev, pin: undefined }));
                     }
                   }}
-                  className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
-                    errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
-                  } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all placeholder-white/20`}
-                />
+                  className="w-full bg-[#00FF00] hover:bg-white text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-2 uppercase tracking-tight text-sm font-mono cursor-pointer mt-2"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" /> Reanudar y Pronosticar
+                </button>
               </div>
-              {errors.pin && <p className="text-xs text-red-400 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
-              <p className="text-[10px] text-white/40 mt-2 leading-relaxed font-light">
-                {foundExistingSubmission 
-                  ? foundExistingSubmission.participant.pin 
-                    ? "Esta planilla tiene una clave registrada. Introduce tu PIN de 4 dígitos para poder editarla o reanudarla." 
-                    : "Este participante no tiene clave PIN registrada. ¡Establece una clave de 4 dígitos para protegerla!"
-                  : "Crea una clave numérica de 4 dígitos para poder volver a acceder o modificar tus marcadores en el futuro."}
-              </p>
-            </div>
+            ) : (
+              /* NEW REGISTRATION OR FULL EDITING ACCESS MODE */
+              <>
+                <div>
+                  <label id="lbl-name" htmlFor="txt-name" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                    Nombre Completo <span className="text-[#00FF00]">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <input
+                      id="txt-name"
+                      type="text"
+                      placeholder="Augusto González"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (e.target.value.trim()) setErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
+                        errors.name ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                      } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20`}
+                    />
+                  </div>
+                  {errors.name && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.name}</p>}
+                </div>
 
-            <button
-              id="btn-go-to-predictions"
-              onClick={handleNextStep}
-              className="w-full bg-[#00FF00] hover:bg-white text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
-            >
-              Comenzar a Pronosticar <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />
-            </button>
+                <div>
+                  <label id="lbl-phone" htmlFor="txt-phone" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                    WhatsApp / Celular <span className="text-white/30 font-normal font-sans">(Opcional)</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <input
+                      id="txt-phone"
+                      type="tel"
+                      placeholder="Ej: +58 412 1234567"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="block w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20"
+                    />
+                  </div>
+                  <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
+                    Utilizado para generar el enlace directo que envía tus marcadores en un solo bloque a WhatsApp.
+                  </p>
+                </div>
+
+                <div>
+                  <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                    Clave PIN de Seguridad <span className="text-[#00FF00]">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                      <Lock className="w-5 h-5 text-white/30" />
+                    </div>
+                    <input
+                      id="txt-pin"
+                      type="password"
+                      inputMode="numeric"
+                      pattern="\d*"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={pin}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setPin(val);
+                        if (val.length === 4) {
+                          setErrors((prev) => ({ ...prev, pin: undefined }));
+                        }
+                      }}
+                      className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
+                        errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                      } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all placeholder-white/20`}
+                    />
+                  </div>
+                  {errors.pin && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
+                  <p className="text-[10px] text-white/40 mt-2 leading-relaxed font-light">
+                    Crea una clave numérica de 4 dígitos para poder volver a acceder o modificar tus marcadores en el futuro.
+                  </p>
+                </div>
+
+                <button
+                  id="btn-go-to-predictions"
+                  onClick={handleNextStep}
+                  className="w-full bg-[#00FF00] hover:bg-white text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
+                >
+                  Comenzar a Pronosticar <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       ) : (

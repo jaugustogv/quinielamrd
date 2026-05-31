@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Users, 
   Search, 
@@ -23,6 +23,7 @@ import {
   Check
 } from "lucide-react";
 import { QuinielaSubmission } from "../types";
+import { getAdminPin, saveAdminPin } from "../storage";
 
 interface ListaParticipantesProps {
   submissions: QuinielaSubmission[];
@@ -58,6 +59,25 @@ export default function ListaParticipantes({
   const [showChangeAdminPinModal, setShowChangeAdminPinModal] = useState(false);
   const [newAdminPinInput, setNewAdminPinInput] = useState("");
   const [adminChangeError, setAdminChangeError] = useState("");
+
+  // Sync admin PIN with Cloud Firestore on mount if available
+  useEffect(() => {
+    let active = true;
+    const fetchAdminPin = async () => {
+      try {
+        const pin = await getAdminPin();
+        if (active) {
+          setAdminPin(pin);
+        }
+      } catch (err) {
+        console.warn("Could not sync admin PIN on mount:", err);
+      }
+    };
+    fetchAdminPin();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Edit Player PIN states
   const [editingPlayerPin, setEditingPlayerPin] = useState<{
@@ -122,7 +142,7 @@ export default function ListaParticipantes({
     }
   };
 
-  const handleSaveAdminPin = (e: React.FormEvent) => {
+  const handleSaveAdminPin = async (e: React.FormEvent) => {
     e.preventDefault();
     const pin = newAdminPinInput.trim();
     if (!pin) {
@@ -133,7 +153,7 @@ export default function ListaParticipantes({
       setAdminChangeError("El nuevo PIN debe tener al menos 4 caracteres.");
       return;
     }
-    localStorage.setItem("admin_pin_key", pin);
+    await saveAdminPin(pin);
     setAdminPin(pin);
     setShowChangeAdminPinModal(false);
   };
