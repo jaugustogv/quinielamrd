@@ -110,21 +110,37 @@ export async function getAllSubmissions(): Promise<QuinielaSubmission[]> {
       });
       
       // If Firestore database contains submissions, we merge them with local ones.
-      // To prevent duplicate entries, we can match by name + email + timestamp
-      if (fbList.length > 0) {
-        const merged = [...fbList];
-        localList.forEach((local) => {
-          const existsInFirebase = fbList.some(
-            (fb) => 
-              fb.participant.email === local.participant.email && 
-              fb.submittedAt === local.submittedAt
+      // To prevent duplicate entries, we match strictly by lowercase trimmed email
+      const merged = [...fbList];
+      localList.forEach((local) => {
+        const localEmail = local.participant.email.toLowerCase().trim();
+        const existsInFirebase = fbList.some(
+          (fb) => fb.participant.email.toLowerCase().trim() === localEmail
+        );
+        if (!existsInFirebase) {
+          merged.push(local);
+        } else {
+          // If the local ID does not match the cloud ID, synchronize local storage to avoid confusion
+          const fbMatch = fbList.find(
+            (fb) => fb.participant.email.toLowerCase().trim() === localEmail
           );
-          if (!existsInFirebase) {
-            merged.push(local);
+          if (fbMatch && local.id !== fbMatch.id) {
+            try {
+              const latestLocals = getLocalSubmissions();
+              const idx = latestLocals.findIndex(
+                (item) => item.participant.email.toLowerCase().trim() === localEmail
+              );
+              if (idx !== -1) {
+                latestLocals[idx].id = fbMatch.id;
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(latestLocals));
+              }
+            } catch (err) {
+              console.error("Failed to sync ID in local storage", err);
+            }
           }
-        });
-        return merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-      }
+        }
+      });
+      return merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
     } catch (error) {
       console.warn("Firestore fetch error, utilizing local fallback:", error);
     }
