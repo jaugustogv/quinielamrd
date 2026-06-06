@@ -76,7 +76,7 @@ export default function ListaParticipantes({
   const [isGeneratingMock, setIsGeneratingMock] = useState(false);
 
   // Admin PIN configuration states
-  const [adminPin, setAdminPin] = useState(() => localStorage.getItem("admin_pin_key") || "1234");
+  const [adminPin, setAdminPin] = useState(() => localStorage.getItem("admin_pin_key") || "1397");
   const [showChangeAdminPinModal, setShowChangeAdminPinModal] = useState(false);
   const [newAdminPinInput, setNewAdminPinInput] = useState("");
   const [adminChangeError, setAdminChangeError] = useState("");
@@ -638,7 +638,7 @@ export default function ListaParticipantes({
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 font-mono">Nuevo PIN de Seguridad</label>
                 <input
                   type="text"
-                  placeholder="Ej. 1234"
+                  placeholder="PIN de 4 números"
                   value={newAdminPinInput}
                   onChange={(e) => {
                     setNewAdminPinInput(e.target.value.slice(0, 10));
@@ -694,7 +694,7 @@ export default function ListaParticipantes({
                 <label className="block text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 font-mono">Nuevo PIN (Mínimo 4 dígitos)</label>
                 <input
                   type="text"
-                  placeholder="Ej. 1122"
+                  placeholder="PIN de 4 números"
                   value={newPlayerPinInput}
                   onChange={(e) => {
                     setNewPlayerPinInput(e.target.value.slice(0, 10));

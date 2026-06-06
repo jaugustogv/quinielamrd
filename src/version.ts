@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.2.1";
-export const VERSION_DATE = "31 de Mayo, 2026";
+export const APP_VERSION = "2.3.0";
+export const VERSION_DATE = "6 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.3.0",
+    date: "06 Junio 2026",
+    title: "Medidas de Seguridad y Privacidad",
+    description: "Actualización crítica de seguridad: Se cambió el PIN predeterminado del administrador para evitar accesos no autorizados y se eliminaron ejemplos numéricos explícitos en los formularios. En cuanto a privacidad, ahora se ocultan (enmascaran) los caracteres de correos electrónicos y teléfonos de todos los participantes en el listado público.",
+    type: "minor"
+  },
   {
     version: "2.2.1",
     date: "31 Mayo 2026",

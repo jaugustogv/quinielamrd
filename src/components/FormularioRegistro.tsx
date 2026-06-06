@@ -164,7 +164,7 @@ export default function FormularioRegistro({
       if (!pin.trim()) {
         errs.pin = "La clave de 4 dígitos es obligatoria para proteger tu quiniela.";
       } else if (!/^\d{4}$/.test(pin.trim())) {
-        errs.pin = "La clave debe tener exactamente 4 dígitos numéricos (ej. 1234).";
+        errs.pin = "La clave debe tener exactamente 4 dígitos numéricos.";
       }
     }
 
