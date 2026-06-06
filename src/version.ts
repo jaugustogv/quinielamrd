@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.3.0";
+export const APP_VERSION = "2.3.1";
 export const VERSION_DATE = "6 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.3.1",
+    date: "06 Junio 2026",
+    title: "Personalización de Pestaña Oficial",
+    description: "Actualización de la etiqueta e identidad del sitio en la pestaña del navegador para configurarse únicamente como QuinielasMRD.",
+    type: "patch"
+  },
   {
     version: "2.3.0",
     date: "06 Junio 2026",
