@@ -35,6 +35,27 @@ interface ListaParticipantesProps {
   onUpdateSubmissionPin?: (id: string | undefined, email: string, submittedAt: string, newPin: string) => Promise<void>;
 }
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const username = parts[0];
+  const domain = parts[1];
+  if (username.length <= 2) {
+    return `${username[0]}*@${domain}`;
+  }
+  return `${username[0]}***${username[username.length - 1]}@${domain}`;
+}
+
+function maskPhone(phone: string): string {
+  if (!phone) return "";
+  const clean = phone.trim();
+  if (clean.length <= 5) {
+    return "***";
+  }
+  return `${clean.slice(0, 3)}****${clean.slice(-3)}`;
+}
+
 export default function ListaParticipantes({ 
   submissions, 
   currentSubmission,
@@ -55,7 +76,7 @@ export default function ListaParticipantes({
   const [isGeneratingMock, setIsGeneratingMock] = useState(false);
 
   // Admin PIN configuration states
-  const [adminPin, setAdminPin] = useState(() => localStorage.getItem("admin_pin_key") || "2026");
+  const [adminPin, setAdminPin] = useState(() => localStorage.getItem("admin_pin_key") || "1234");
   const [showChangeAdminPinModal, setShowChangeAdminPinModal] = useState(false);
   const [newAdminPinInput, setNewAdminPinInput] = useState("");
   const [adminChangeError, setAdminChangeError] = useState("");
@@ -395,11 +416,11 @@ export default function ListaParticipantes({
                     </h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 mt-1.5 text-xs text-white/50 flex-wrap">
                       <span className="flex items-center gap-1.5 truncate max-w-[170px] sm:max-w-none">
-                        <Mail className="w-3.5 h-3.5 text-white/30" /> {sub.participant.email}
+                        <Mail className="w-3.5 h-3.5 text-white/30" /> {isAdmin ? sub.participant.email : maskEmail(sub.participant.email)}
                       </span>
                       {sub.participant.phone && (
                         <span className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-white/30" /> {sub.participant.phone}
+                          <Phone className="w-3.5 h-3.5 text-white/30" /> {isAdmin ? sub.participant.phone : maskPhone(sub.participant.phone)}
                         </span>
                       )}
                       {isAdmin && (
@@ -519,7 +540,7 @@ export default function ListaParticipantes({
                 <input
                   id="txt-admin-pin"
                   type="password"
-                  placeholder="Introduce PIN (Ej. 2026)"
+                  placeholder="Introduce PIN de seguridad"
                   value={adminPinInput}
                   onChange={(e) => {
                     setAdminPinInput(e.target.value);

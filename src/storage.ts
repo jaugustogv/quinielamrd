@@ -233,10 +233,10 @@ export async function syncLocalSubmissions(): Promise<void> {
 /**
  * Gets the administrator PIN.
  * If Firebase is configured, it first tries to retrieve it from Firestore ("config/admin").
- * Falls back to localStorage and finally to "2026".
+ * Falls back to localStorage and finally to "1234".
  */
 export async function getAdminPin(): Promise<string> {
-  const localDefault = localStorage.getItem("admin_pin_key") || "2026";
+  const localDefault = localStorage.getItem("admin_pin_key") || "1234";
   if (isFirebaseConfigured && db) {
     try {
       const docRef = doc(db, "config", "admin");
@@ -274,5 +274,8 @@ export async function saveAdminPin(newPin: string): Promise<void> {
     }
   }
 }
+
+
+
 
 
