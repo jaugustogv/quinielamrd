@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.3.1";
-export const VERSION_DATE = "6 de Junio, 2026";
+export const APP_VERSION = "2.4.3";
+export const VERSION_DATE = "7 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,34 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.4.3",
+    date: "07 Junio 2026",
+    title: "Protección de PIN de Acceso en Reporte Excel",
+    description: "Eliminación del PIN de Acceso de los jugadores en el reporte de exportación consolidado de Excel para garantizar una total privacidad al compartir la planilla públicamente.",
+    type: "patch"
+  },
+  {
+    version: "2.4.2",
+    date: "07 Junio 2026",
+    title: "Optimización de Formato Excel Administrativo",
+    description: "Eliminación de la columna con el guion o conector '-' en el reporte consolidado de planillas para permitir una tabulación limpia y directa al compartir.",
+    type: "patch"
+  },
+  {
+    version: "2.4.1",
+    date: "07 Junio 2026",
+    title: "Privacidad de Exportación Excel y Estructura Organizativa",
+    description: "Aplicación de máscaras de privacidad para correos y teléfonos también en los archivos Excel exportados a fin de proteger los datos al compartirse públicamente. Asimismo, se incorporaron separaciones en blanco entre grupos de partidos para mayor legibilidad.",
+    type: "patch"
+  },
+  {
+    version: "2.4.0",
+    date: "07 Junio 2026",
+    title: "Exportación Multihoja a Excel y Actualización de Tiempos",
+    description: "Incorporación de exportación total de planillas en un único archivo Excel con una pestaña por participante. Además, al editar predicciones, se actualiza el registro a la hora exacta del envío.",
+    type: "minor"
+  },
   {
     version: "2.3.1",
     date: "06 Junio 2026",

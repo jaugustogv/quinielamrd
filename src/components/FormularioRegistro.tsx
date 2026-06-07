@@ -273,7 +273,7 @@ export default function FormularioRegistro({
       id: editingSubmissionId,
       participant,
       predictions: formattedPredictions,
-      submittedAt: editingSubmittedAt || new Date().toISOString(),
+      submittedAt: new Date().toISOString(),
       totalMatchesPredicted: totalPredicted,
     };
 

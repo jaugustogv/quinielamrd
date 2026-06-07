@@ -20,10 +20,13 @@ import {
   AlertCircle,
   Share2,
   Link,
-  Check
+  Check,
+  FileSpreadsheet
 } from "lucide-react";
 import { QuinielaSubmission } from "../types";
 import { getAdminPin, saveAdminPin } from "../storage";
+import { MATCHES } from "../games";
+import * as XLSX from "xlsx";
 
 interface ListaParticipantesProps {
   submissions: QuinielaSubmission[];
@@ -215,6 +218,76 @@ export default function ListaParticipantes({
     sessionStorage.removeItem("isAdmin");
   };
 
+  const handleDownloadAllExcel = () => {
+    try {
+      if (submissions.length === 0) {
+        alert("No hay quinielas registradas para descargar.");
+        return;
+      }
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+
+      submissions.forEach((sub) => {
+        // Build the sheet header structure
+        const sheetData: (string | number)[][] = [
+          ["PERFIL DEL JUGADOR - QUINIELA MUNDIAL 2026"],
+          ["Nombre Completo", sub.participant.name],
+          ["Correo Electrónico", maskEmail(sub.participant.email)],
+          ["Teléfono de Contacto", sub.participant.phone ? maskPhone(sub.participant.phone) : "No registrado"],
+          ["Fecha y Hora del Último Registro", new Date(sub.submittedAt).toLocaleString("es-ES")],
+          ["Partidos Pronosticados", `${sub.totalMatchesPredicted} / 72`],
+          [], // Empty spacer row
+          ["ESTRUCTURA DE PARTIDOS & PRONÓSTICOS"],
+          ["Partido ID", "Grupo", "Equipo Local", "Pronóstico Local", "Pronóstico Visitante", "Equipo Visitante"]
+        ];
+
+        // Populate match predictions in standard rows
+        let lastGroup = "";
+        MATCHES.forEach((match) => {
+          if (lastGroup && match.group !== lastGroup) {
+            // Include a blank row as space between different groups
+            sheetData.push([]);
+          }
+          lastGroup = match.group;
+
+          const pred = sub.predictions[match.id] || { homeScore: "", awayScore: "" };
+          sheetData.push([
+            match.id,
+            match.group,
+            match.homeTeam,
+            pred.homeScore !== undefined && pred.homeScore !== "" ? pred.homeScore : "",
+            pred.awayScore !== undefined && pred.awayScore !== "" ? pred.awayScore : "",
+            match.awayTeam
+          ]);
+        });
+
+        // Convert array of arrays to a sheet
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Sanitize player name for sheet title (max 25 chars, remove special characters)
+        let cleanedName = sub.participant.name.trim().replace(/[\\/?*:\[\]]/g, "");
+        if (cleanedName.length > 25) {
+          cleanedName = cleanedName.slice(0, 25);
+        }
+        let uniqueSheetName = cleanedName || "Jugador";
+        
+        let counter = 1;
+        while (wb.SheetNames.includes(uniqueSheetName)) {
+          uniqueSheetName = `${cleanedName.slice(0, 20)}_${counter++}`;
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, uniqueSheetName);
+      });
+
+      // Triggers download in the client browser
+      XLSX.writeFile(wb, "Planillas_QuinielasMRD.xlsx");
+    } catch (error) {
+      console.error("Error al exportar archivo Excel:", error);
+      alert("Hubo un error al generar el archivo Excel.");
+    }
+  };
+
   const executeDelete = async () => {
     if (!subToDelete || !onDeleteSubmission) return;
     setIsDeleting(true);
@@ -339,31 +412,48 @@ export default function ListaParticipantes({
         </button>
       </div>
 
-      {isAdmin && onGenerateMockData && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in">
-          <div className="space-y-1 text-left">
-            <p className="text-xs font-bold text-red-100 uppercase tracking-wider flex items-center gap-1.5">
-              🛠️ Panel de Diagnóstico & Pruebas
-            </p>
-            <p className="text-[11px] text-white/50 leading-relaxed max-w-xl">
-              Como administrador, puedes registrar automáticamente <span className="text-[#00FF00] font-bold">5 participantes ficticios</span> con nombres y resultados 100% aleatorios para simular el tablero. ¡Úsalos para probar emails, resúmenes de WhatsApp y formato Excel!
-            </p>
+      {isAdmin && (
+        <div className="bg-[#00FF00]/5 border border-[#00FF00]/15 rounded-xl p-5 mb-6 animate-fade-in text-left">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-[#00FF00] uppercase tracking-wider flex items-center gap-1.5">
+                🛠️ Panel de Herramientas de Administrador
+              </p>
+              <p className="text-[11px] text-white/60 leading-relaxed max-w-xl">
+                Accede a utilidades de exportación y diagnóstico. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel (un jugador por pestaña con sus respectivos datos y pronósticos) o simular competidores ficticios.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
+              <button
+                id="btn-admin-download-excel"
+                type="button"
+                onClick={handleDownloadAllExcel}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 font-black py-2.5 px-4 bg-[#00FF00] hover:bg-white text-black font-extrabold rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Descargar Todo (Excel)
+              </button>
+
+              {onGenerateMockData && (
+                <button
+                  id="btn-admin-generate-mockups"
+                  type="button"
+                  disabled={isGeneratingMock}
+                  onClick={handleGenerateTestParticipants}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter disabled:opacity-50 cursor-pointer"
+                >
+                  {isGeneratingMock ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generando...
+                    </>
+                  ) : (
+                    "Crear 5 Participantes"
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            id="btn-admin-generate-mockups"
-            type="button"
-            disabled={isGeneratingMock}
-            onClick={handleGenerateTestParticipants}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 font-black py-2.5 px-4 bg-red-650 hover:bg-white text-white hover:text-black border border-red-500/30 rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter disabled:opacity-50 cursor-pointer"
-          >
-            {isGeneratingMock ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generando...
-              </>
-            ) : (
-              "Crear 5 Participantes"
-            )}
-          </button>
         </div>
       )}
 
