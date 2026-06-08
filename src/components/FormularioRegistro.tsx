@@ -28,6 +28,7 @@ interface FormularioRegistroProps {
   submissions?: QuinielaSubmission[];
   initialEmail?: string;
   onClearInitialEmail?: () => void;
+  isEditingLocked?: boolean;
 }
 
 export default function FormularioRegistro({ 
@@ -35,10 +36,13 @@ export default function FormularioRegistro({
   isSubmitting, 
   submissions = [],
   initialEmail = "",
-  onClearInitialEmail
+  onClearInitialEmail,
+  isEditingLocked = false
 }: FormularioRegistroProps) {
   // Step 1: Info, Step 2: Predictions
   const [step, setStep] = useState<1 | 2>(1);
+  const isReadOnlySession = isEditingLocked;
+
   
   // Custom dialog states to bypass iframe native prompt/alert blocks completely
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -343,6 +347,17 @@ export default function FormularioRegistro({
             </p>
           </div>
 
+          {isEditingLocked && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-left animate-fade-in">
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5 font-mono mb-1.5">
+                🔒 Inscripciones y Ediciones Bloqueadas
+              </p>
+              <p className="text-[11px] text-white/70 leading-relaxed font-light">
+                El administrador ha cerrado las inscripciones y modificaciones por fecha límite externa. Si ya te habías registrado, puedes colocar tu correo abajo y usar tu PIN de seguridad para visualizar tus pronósticos anteriores en modo de <strong>Solo Lectura</strong>.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-6">
             {/* CORREO ELECTRÓNICO ALWAYS FIRST */}
             <div>
@@ -381,6 +396,11 @@ export default function FormularioRegistro({
                 <p className="text-xs text-white/80 leading-relaxed font-sans">
                   Hola, <strong className="text-white font-black">{foundExistingSubmission.participant.name}</strong>. Hemos detectado tu participación previa con <span className="text-[#00FF00] font-mono font-extrabold">{foundExistingSubmission.totalMatchesPredicted}/72</span> partidos ya pronosticados.
                 </p>
+                {isEditingLocked && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-100 rounded-lg p-3 text-[11px] leading-relaxed">
+                    ⚠️ <strong>Edición Desactivada:</strong> Las modificaciones están bloqueadas debido a la fecha límite. Coloca tu PIN para visualizar tus pronósticos en modo de solo lectura.
+                  </div>
+                )}
                 
                 <div className="border-t border-white/5 pt-3.5">
                   <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
@@ -495,7 +515,7 @@ export default function FormularioRegistro({
                   }}
                   className="w-full bg-[#00FF00] hover:bg-white text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-2 uppercase tracking-tight text-sm font-mono cursor-pointer mt-2"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" /> Reanudar y Pronosticar
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" /> {isEditingLocked ? "Ver mis Pronósticos (Solo Lectura)" : "Reanudar y Pronosticar"}
                 </button>
               </div>
             ) : (
@@ -584,10 +604,11 @@ export default function FormularioRegistro({
 
                 <button
                   id="btn-go-to-predictions"
+                  disabled={isEditingLocked}
                   onClick={handleNextStep}
-                  className="w-full bg-[#00FF00] hover:bg-white text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
+                  className="w-full bg-[#00FF00] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
                 >
-                  Comenzar a Pronosticar <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />
+                  {isEditingLocked ? "Inscripciones Cerradas" : "Comenzar a Pronosticar"} {!isEditingLocked && <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />}
                 </button>
               </>
             )}
@@ -624,16 +645,18 @@ export default function FormularioRegistro({
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <button
                   id="btn-auto-fill"
+                  disabled={isReadOnlySession}
                   onClick={handleAutoFillRandom}
                   title="Modelar marcadores aleatorios en espacios vacíos"
-                  className="flex-1 md:flex-none px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 md:flex-none px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#00FF00]" /> Autocompletar Vacíos
                 </button>
                 <button
                   id="btn-clear-preds"
+                  disabled={isReadOnlySession}
                   onClick={handleClearPredictions}
-                  className="flex-1 md:flex-none px-4 py-2 bg-red-950/20 hover:bg-red-900/30 border border-red-500/20 text-red-300 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 md:flex-none px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed bg-red-950/20 hover:bg-red-900/30 border border-red-500/20 text-red-300 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Limpiar Todo
                 </button>
@@ -775,7 +798,7 @@ export default function FormularioRegistro({
                           {getTeamFlag(match.homeTeam)}
                         </span>
                       </div>
-                      <span className="text-white text-xs sm:text-sm font-bold tracking-tight text-center leading-snug break-words max-w-full">
+                       <span className="text-white text-xs sm:text-sm font-bold tracking-tight text-center leading-snug break-words max-w-full">
                         {match.homeTeam}
                       </span>
                     </div>
@@ -789,6 +812,7 @@ export default function FormularioRegistro({
                         inputMode="numeric"
                         placeholder="-"
                         value={pred.homeScore}
+                        disabled={isReadOnlySession}
                         onFocus={(e) => {
                           try {
                             e.target.select();
@@ -805,7 +829,7 @@ export default function FormularioRegistro({
                             }
                           }
                         }}
-                        className="w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all"
+                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isReadOnlySession ? "opacity-55 cursor-not-allowed" : ""}`}
                       />
 
                       <span className="text-white/25 text-[10px] sm:text-xs font-mono font-bold select-none uppercase px-0.5">vs</span>
@@ -817,6 +841,7 @@ export default function FormularioRegistro({
                         inputMode="numeric"
                         placeholder="-"
                         value={pred.awayScore}
+                        disabled={isReadOnlySession}
                         onFocus={(e) => {
                           try {
                             e.target.select();
@@ -833,7 +858,7 @@ export default function FormularioRegistro({
                             }
                           }
                         }}
-                        className="w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all"
+                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isReadOnlySession ? "opacity-55 cursor-not-allowed" : ""}`}
                       />
                     </div>
 
@@ -911,13 +936,19 @@ export default function FormularioRegistro({
 
               <button
                 id="btn-submit-quiniela"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isReadOnlySession}
                 onClick={handleSubmit}
-                className={`flex-1 sm:flex-initial bg-[#00FF00] hover:bg-white text-black font-black py-3.5 px-8 rounded-lg shadow-lg shadow-[#00FF00]/10 cursor-pointer text-xs uppercase tracking-tighter h-12 flex items-center justify-center gap-2 transition-all duration-200 ${
-                  isSubmitting ? "opacity-55 cursor-not-allowed" : "active:scale-95"
+                className={`flex-1 sm:flex-initial text-xs uppercase tracking-tighter h-12 flex items-center justify-center gap-2 transition-all duration-200 ${
+                  isReadOnlySession
+                    ? "bg-white/5 border border-white/10 text-white/40 cursor-not-allowed"
+                    : "bg-[#00FF00] hover:bg-white text-black font-black py-3.5 px-8 rounded-lg shadow-lg shadow-[#00FF00]/10 cursor-pointer " + (isSubmitting ? "opacity-55 cursor-not-allowed" : "active:scale-95")
                 }`}
               >
-                {isSubmitting ? (
+                {isReadOnlySession ? (
+                  <>
+                    <Lock className="w-4 h-4 text-white/40" /> Vista de Solo Lectura
+                  </>
+                ) : isSubmitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-black" /> Sincronizando...
                   </>

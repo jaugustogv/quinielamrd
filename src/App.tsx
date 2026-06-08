@@ -22,7 +22,7 @@ import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
 import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
-import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions } from "./storage";
+import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked } from "./storage";
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
@@ -41,6 +41,7 @@ export default function App() {
   const [searchPinError, setSearchPinError] = useState("");
   const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [isEditingLocked, setIsEditingLocked] = useState(false);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -49,6 +50,10 @@ export default function App() {
         await syncLocalSubmissions();
         const data = await getAllSubmissions();
         setSubmissions(data);
+        
+        // Load lock state
+        const locked = await getEditingLocked();
+        setIsEditingLocked(locked);
       } catch (err) {
         console.warn("Silent sync error on load:", err);
         // Load fallback local items if Firestore fails
@@ -248,6 +253,15 @@ export default function App() {
     } catch (err) {
       console.error("Failed to update PIN:", err);
       throw err;
+    }
+  };
+
+  const handleToggleEditingLock = async (newVal: boolean) => {
+    try {
+      await saveEditingLocked(newVal);
+      setIsEditingLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change editing lock state:", err);
     }
   };
 
@@ -741,6 +755,7 @@ export default function App() {
                   submissions={submissions}
                   initialEmail={resumeEmail}
                   onClearInitialEmail={() => setResumeEmail("")}
+                  isEditingLocked={isEditingLocked}
                 />
               </div>
             )}
@@ -769,6 +784,8 @@ export default function App() {
                   onDeleteSubmission={handleDeleteSubmission}
                   onGenerateMockData={handleGenerateMockData}
                   onUpdateSubmissionPin={handleUpdateSubmissionPin}
+                  isEditingLocked={isEditingLocked}
+                  onToggleEditingLock={handleToggleEditingLock}
                 />
               </div>
             )}

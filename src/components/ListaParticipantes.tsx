@@ -36,6 +36,8 @@ interface ListaParticipantesProps {
   onDeleteSubmission?: (id: string | undefined, email: string, submittedAt: string) => Promise<void>;
   onGenerateMockData?: () => Promise<void>;
   onUpdateSubmissionPin?: (id: string | undefined, email: string, submittedAt: string, newPin: string) => Promise<void>;
+  isEditingLocked?: boolean;
+  onToggleEditingLock?: (locked: boolean) => Promise<void> | void;
 }
 
 function maskEmail(email: string): string {
@@ -66,7 +68,9 @@ export default function ListaParticipantes({
   isFirebaseConnected,
   onDeleteSubmission,
   onGenerateMockData,
-  onUpdateSubmissionPin
+  onUpdateSubmissionPin,
+  isEditingLocked = false,
+  onToggleEditingLock
 }: ListaParticipantesProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem("isAdmin") === "true");
@@ -433,6 +437,29 @@ export default function ListaParticipantes({
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 Descargar Todo (Excel)
+              </button>
+
+              <button
+                id="btn-admin-toggle-edit-lock"
+                type="button"
+                onClick={() => onToggleEditingLock && onToggleEditingLock(!isEditingLocked)}
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                  isEditingLocked
+                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                    : "bg-amber-950/45 border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-black"
+                }`}
+              >
+                {isEditingLocked ? (
+                  <>
+                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                    Edición: Bloqueada
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-400 shrink-0 opacity-70" />
+                    Edición: Permitida
+                  </>
+                )}
               </button>
 
               {onGenerateMockData && (

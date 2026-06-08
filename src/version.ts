@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.4.3";
-export const VERSION_DATE = "7 de Junio, 2026";
+export const APP_VERSION = "2.5.0";
+export const VERSION_DATE = "8 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.5.0",
+    date: "08 Junio 2026",
+    title: "Bloqueo Global de Edición / Cierre de Fecha Límite",
+    description: "Implementación de un botón en el Panel de Administrador para bloquear e impedir que los participantes editen o registren nuevas quinielas una vez alcanzada la fecha límite. Se ofrece un modo de visualización de Solo Lectura para participantes registrados mediante PIN.",
+    type: "minor"
+  },
   {
     version: "2.4.3",
     date: "07 Junio 2026",

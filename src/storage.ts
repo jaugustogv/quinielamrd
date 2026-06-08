@@ -275,6 +275,46 @@ export async function saveAdminPin(newPin: string): Promise<void> {
   }
 }
 
+/**
+ * Gets whether editing / updating existing quinielas is locked/blocked by the admin.
+ */
+export async function getEditingLocked(): Promise<boolean> {
+  const localVal = localStorage.getItem("editing_locked") === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.editingLocked === "boolean") {
+          localStorage.setItem("editing_locked", String(data.editingLocked));
+          return data.editingLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch editing lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether editing / updating existing quinielas is locked/blocked by the admin.
+ */
+export async function saveEditingLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("editing_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { editingLocked: locked }, { merge: true });
+      console.log("Editing lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save editing lock status to Firestore:", e);
+    }
+  }
+}
+
+
 
 
 
