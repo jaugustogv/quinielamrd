@@ -18,6 +18,21 @@ export function getLocalSubmissions(): QuinielaSubmission[] {
   }
 }
 
+function cleanUndefined(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanUndefined(item));
+  } else if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const cleaned: any = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (val !== undefined) {
+        cleaned[key] = cleanUndefined(val);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 export async function saveSubmission(submission: QuinielaSubmission): Promise<string> {
   // Normalize email to lowercase to prevent mixed-case duplicate accounts
   submission.participant.email = submission.participant.email.toLowerCase().trim();
@@ -77,12 +92,14 @@ export async function saveSubmission(submission: QuinielaSubmission): Promise<st
         // Update / Merge existing document
         const docRef = doc(db, colPath, existingDocId);
         const { id, ...dataToWrite } = { ...submission };
-        await setDoc(docRef, dataToWrite, { merge: true });
+        const cleanedData = cleanUndefined(dataToWrite);
+        await setDoc(docRef, cleanedData, { merge: true });
         return existingDocId;
       } else {
         // Add new document
         const { id, ...dataToWrite } = { ...submission };
-        const docRef = await addDoc(collection(db, colPath), dataToWrite);
+        const cleanedData = cleanUndefined(dataToWrite);
+        const docRef = await addDoc(collection(db, colPath), cleanedData);
         return docRef.id;
       }
     } catch (error) {
