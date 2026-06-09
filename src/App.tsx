@@ -265,6 +265,15 @@ export default function App() {
     }
   };
 
+  const handleReloadAllSubmissions = async () => {
+    try {
+      const data = await getAllSubmissions();
+      setSubmissions(data);
+    } catch (err) {
+      console.error("Failed to reload submissions:", err);
+    }
+  };
+
   const handleGenerateMockData = async () => {
     const mockNames = [
       { name: "Julio Augusto", email: "julio.augusto@test.com", phone: "+51999888777" },
@@ -786,6 +795,7 @@ export default function App() {
                   onUpdateSubmissionPin={handleUpdateSubmissionPin}
                   isEditingLocked={isEditingLocked}
                   onToggleEditingLock={handleToggleEditingLock}
+                  onRefreshSubmissions={handleReloadAllSubmissions}
                 />
               </div>
             )}

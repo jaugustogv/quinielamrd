@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.5.0";
-export const VERSION_DATE = "8 de Junio, 2026";
+export const APP_VERSION = "2.6.0";
+export const VERSION_DATE = "9 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.6.0",
+    date: "09 Junio 2026",
+    title: "Herramienta de Restauración y Recuperación desde Excel backing",
+    description: "Incorporación de un recuperador inteligente en el panel administrativo para importar y reconstituir la base de datos de usuarios y pronósticos desde un archivo Excel oficial de respaldo. Incluye un asistente interactivo para mitigar el enmascaramiento de privacidad, permitiendo asociar correos y claves personalizadas antes de la persistencia simultánea local y en la nube (Firestore).",
+    type: "minor"
+  },
   {
     version: "2.5.0",
     date: "08 Junio 2026",
