@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.6.0";
+export const APP_VERSION = "2.6.1";
 export const VERSION_DATE = "9 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.6.1",
+    date: "09 Junio 2026",
+    title: "Corrección de Persistencia en Firestore para Campos Indefinidos",
+    description: "Parche de estabilidad que sanitiza y elimina de forma automática atributos con valor 'undefined' (como teléfonos no provistos) antes de registrar o fusionar los datos en Google Cloud Firestore, previniendo fallos de tipo en la restauración o edición de participantes.",
+    type: "patch"
+  },
   {
     version: "2.6.0",
     date: "09 Junio 2026",
