@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.6.1";
-export const VERSION_DATE = "9 de Junio, 2026";
+export const APP_VERSION = "2.7.2";
+export const VERSION_DATE = "10 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,27 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.7.2",
+    date: "10 Junio 2026",
+    title: "Sanidad de Calendario Escalonada (Julio/Agosto a Junio)",
+    description: "Ampliación de la utilidad curativa de base de datos para interceptar y corregir de manera proactiva registros desfasados con fechas en Julio o Agosto, reasignándolos correctamente a Junio (preservando el día original de registro e historial).",
+    type: "patch"
+  },
+  {
+    version: "2.7.1",
+    date: "10 Junio 2026",
+    title: "Parche Automatizado de Fecha para Agosto a Junio",
+    description: "Implementación de una utilidad de curación estática en el cargador principal de datos para corregir automáticamente los registros catalogados erróneamente en Agosto (8 de agosto) y reasignarlos con precisión a Junio (8 de junio) tanto en LocalStorage como en Cloud Firestore.",
+    type: "patch"
+  },
+  {
+    version: "2.7.0",
+    date: "10 Junio 2026",
+    title: "Filtro de Duplicados de Jugadores y Ordenamiento Inteligente",
+    description: "Incorporación de un filtro estricto anti-duplicados por nombre (case-insensitive y tolerante a espacios adosados) y correo electrónico en el registro de quinielas. Además, se reordenaron de manera predeterminada los participantes por su fecha de última actualización ('último actualizado primero') en todas las vistas y se instaló un parche de autoreparación automático que corrige las planillas con fechas desfasadas del 7 de junio en la base de datos.",
+    type: "minor"
+  },
   {
     version: "2.6.1",
     date: "09 Junio 2026",

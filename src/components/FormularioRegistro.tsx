@@ -22,6 +22,15 @@ import { MATCHES } from "../games";
 import { getTeamFlag, getTeamFlagUrl } from "../utils";
 import { Participant, QuinielaSubmission } from "../types";
 
+function maskEmail(email: string): string {
+  if (!email || !email.includes("@")) return email;
+  const [local, domain] = email.split("@");
+  if (local.length <= 3) {
+    return `${local[0]}***@${domain}`;
+  }
+  return `${local.slice(0, 3)}***@${domain}`;
+}
+
 interface FormularioRegistroProps {
   onSuccess: (submission: QuinielaSubmission) => void;
   isSubmitting: boolean;
@@ -154,6 +163,17 @@ export default function FormularioRegistro({
       errs.email = "Por favor introduce un correo electrónico válido.";
     }
 
+    // Email duplicate check to prevent double register
+    if (!editingSubmissionId && !foundExistingSubmission) {
+      const emailLower = email.trim().toLowerCase();
+      const emailExists = submissions.some(
+        (s) => s.participant.email.toLowerCase().trim() === emailLower
+      );
+      if (emailExists) {
+        errs.email = "Este correo electrónico ya se encuentra inscrito en las quinielas.";
+      }
+    }
+
     if (foundExistingSubmission && !editingSubmissionId) {
       // If we found an existing submission and haven't verified the PIN yet, we only require PIN verification
       if (!pin.trim()) {
@@ -163,7 +183,18 @@ export default function FormularioRegistro({
       }
     } else {
       // New registration or authenticated edit session
-      if (!name.trim()) errs.name = "El nombre completo es obligatorio.";
+      if (!name.trim()) {
+        errs.name = "El nombre completo es obligatorio.";
+      } else {
+        // Strict duplicate name filter (case-insensitive and whitespace-independent)
+        const cleanInputName = name.trim().toLowerCase().replace(/\s+/g, " ");
+        const nameExistsSub = submissions.find(
+          (s) => s.id !== editingSubmissionId && s.participant.name.trim().toLowerCase().replace(/\s+/g, " ") === cleanInputName
+        );
+        if (nameExistsSub) {
+          errs.name = `El nombre "${name.trim()}" ya está inscrito (asociado al correo ${maskEmail(nameExistsSub.participant.email)}). Si eres tú, usa tu correo inicial para reanudar. Si no, añade tus apellidos u otro distintivo.`;
+        }
+      }
       
       if (!pin.trim()) {
         errs.pin = "La clave de 4 dígitos es obligatoria para proteger tu quiniela.";
@@ -287,6 +318,20 @@ export default function FormularioRegistro({
   const handleSubmit = () => {
     if (!name.trim() || !email.trim()) {
       setShowValidationAlert(true);
+      return;
+    }
+
+    // Double check duplicate name to prevent duplicate players before writing to DB
+    const cleanInputName = name.trim().toLowerCase().replace(/\s+/g, " ");
+    const nameExistsSub = submissions.find(
+      (s) => s.id !== editingSubmissionId && s.participant.name.trim().toLowerCase().replace(/\s+/g, " ") === cleanInputName
+    );
+    if (nameExistsSub) {
+      setStep(1);
+      setErrors((prev) => ({
+        ...prev,
+        name: `El nombre "${name.trim()}" ya está inscrito (asociado al correo ${maskEmail(nameExistsSub.participant.email)}). Si eres tú, usa tu correo inicial para reanudar. Si no, añade tus apellidos completos o un distintivo.`
+      }));
       return;
     }
 

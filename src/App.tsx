@@ -48,7 +48,74 @@ export default function App() {
     async function syncAndLoadSubmissions() {
       try {
         await syncLocalSubmissions();
-        const data = await getAllSubmissions();
+        let data = await getAllSubmissions();
+        
+        // One-time auto-healing patch: Change the dates of the 3 latest manual load submissions to June 7, 2026.
+        // We find the first 3 submissions on the list (which currently are sorted descending and appear first due to the incorrect date).
+        const hasAppliedDatePatch = localStorage.getItem("patch_dates_7_junio_v3");
+        if (!hasAppliedDatePatch && data.length > 0) {
+          const candidates = data.slice(0, 3);
+          let patchedAny = false;
+          for (const sub of candidates) {
+            const subDate = new Date(sub.submittedAt);
+            const day = subDate.getUTCDate();
+            const month = subDate.getUTCMonth(); // June is 5
+            const year = subDate.getUTCFullYear();
+            
+            // Check if date is June 8 or 9, 2026 (the yesterday/today manual load window)
+            if (year === 2026 && month === 5 && (day === 8 || day === 9)) {
+              const updatedSub: QuinielaSubmission = {
+                ...sub,
+                submittedAt: "2026-06-07T12:00:00.000Z",
+                participant: {
+                  ...sub.participant,
+                  registeredAt: sub.participant.registeredAt.startsWith("2026-06-08") || sub.participant.registeredAt.startsWith("2026-06-09")
+                    ? "2026-06-07T12:00:00.000Z"
+                    : sub.participant.registeredAt
+                }
+              };
+              await saveSubmission(updatedSub);
+              patchedAny = true;
+            }
+          }
+          localStorage.setItem("patch_dates_7_junio_v3", "true");
+          if (patchedAny) {
+            data = await getAllSubmissions();
+          }
+        }
+
+        // Automatic persistent correction: Change any submission with August (-08-) or July (-07-) dates to June (-06-)
+        let patchedMonths = false;
+        for (const sub of data) {
+          const hasAugust = sub.submittedAt && sub.submittedAt.includes("-08-");
+          const hasJuly = sub.submittedAt && sub.submittedAt.includes("-07-");
+          const hasRegAugust = sub.participant.registeredAt && sub.participant.registeredAt.includes("-08-");
+          const hasRegJuly = sub.participant.registeredAt && sub.participant.registeredAt.includes("-07-");
+
+          if (hasAugust || hasJuly || hasRegAugust || hasRegJuly) {
+            const correctedTime = sub.submittedAt
+              ? sub.submittedAt.replace(/-08-/g, "-06-").replace(/-07-/g, "-06-")
+              : "2026-06-07T12:00:00.000Z";
+
+            const rawReg = sub.participant.registeredAt || correctedTime;
+            const correctedReg = rawReg.replace(/-08-/g, "-06-").replace(/-07-/g, "-06-");
+
+            const updatedSub: QuinielaSubmission = {
+              ...sub,
+              submittedAt: correctedTime,
+              participant: {
+                ...sub.participant,
+                registeredAt: correctedReg
+              }
+            };
+            await saveSubmission(updatedSub);
+            patchedMonths = true;
+          }
+        }
+        if (patchedMonths) {
+          data = await getAllSubmissions();
+        }
+        
         setSubmissions(data);
         
         // Load lock state
