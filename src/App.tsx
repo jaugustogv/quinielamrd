@@ -22,7 +22,7 @@ import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
 import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
-import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked, getRegistrationLocked, saveRegistrationLocked, getGroupPhaseLocked, saveGroupPhaseLocked, getSecondPhaseLocked, saveSecondPhaseLocked } from "./storage";
+import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked, getRegistrationLocked, saveRegistrationLocked, getGroupPhaseLocked, saveGroupPhaseLocked, getSecondPhaseLocked, saveSecondPhaseLocked, getLocalSubmissions } from "./storage";
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
@@ -328,6 +328,66 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to update PIN:", err);
+      throw err;
+    }
+  };
+
+  const handleUpdateSubmissionEmail = async (id: string | undefined, oldEmail: string, submittedAt: string, newEmail: string) => {
+    try {
+      const normalizedNewEmail = newEmail.toLowerCase().trim();
+      const normalizedOldEmail = oldEmail.toLowerCase().trim();
+
+      // Ensure no OTHER participant already exists with that new email
+      const emailConflict = submissions.some(
+        (s) => s.participant.email.toLowerCase().trim() === normalizedNewEmail && 
+              !(s.participant.email.toLowerCase().trim() === normalizedOldEmail && s.submittedAt === submittedAt)
+      );
+      if (emailConflict) {
+        throw new Error("Ya existe un participante registrado con ese correo electrónico.");
+      }
+
+      const foundIdx = submissions.findIndex(
+        (s) => s.participant.email.toLowerCase().trim() === normalizedOldEmail && s.submittedAt === submittedAt
+      );
+      if (foundIdx === -1) {
+        throw new Error("No se pudo localizar el registro original para modificar.");
+      }
+      
+      const previousSubmission = submissions[foundIdx];
+      const updatedSubmission = {
+        ...previousSubmission,
+        participant: {
+          ...previousSubmission.participant,
+          email: normalizedNewEmail,
+        },
+      };
+
+      // Perfect local data synchronization
+      const localData = getLocalSubmissions();
+      const existingLocalIndex = localData.findIndex(
+        (sub) => sub.participant.email.toLowerCase().trim() === normalizedOldEmail && sub.submittedAt === submittedAt
+      );
+      if (existingLocalIndex !== -1) {
+        localData[existingLocalIndex].participant.email = normalizedNewEmail;
+        localStorage.setItem("quiniela_submissions_v1", JSON.stringify(localData));
+      }
+
+      // Save updated submission (this will overwrite in Firestore or local fallback)
+      const docId = await saveSubmission(updatedSubmission);
+      updatedSubmission.id = docId;
+
+      setSubmissions((prev) => {
+        const copy = [...prev];
+        copy[foundIdx] = updatedSubmission;
+        return copy;
+      });
+
+      // Update current submission if it matches
+      if (currentSubmission && currentSubmission.participant.email.toLowerCase().trim() === normalizedOldEmail && currentSubmission.submittedAt === submittedAt) {
+        setCurrentSubmission(updatedSubmission);
+      }
+    } catch (err) {
+      console.error("Failed to update Email:", err);
       throw err;
     }
   };
@@ -899,6 +959,7 @@ export default function App() {
                   onDeleteSubmission={handleDeleteSubmission}
                   onGenerateMockData={handleGenerateMockData}
                   onUpdateSubmissionPin={handleUpdateSubmissionPin}
+                  onUpdateSubmissionEmail={handleUpdateSubmissionEmail}
                   isEditingLocked={isEditingLocked}
                   onToggleEditingLock={handleToggleEditingLock}
                   isRegistrationLocked={isRegistrationLocked}

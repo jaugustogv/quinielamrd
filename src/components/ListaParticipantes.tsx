@@ -37,6 +37,7 @@ interface ListaParticipantesProps {
   onDeleteSubmission?: (id: string | undefined, email: string, submittedAt: string) => Promise<void>;
   onGenerateMockData?: () => Promise<void>;
   onUpdateSubmissionPin?: (id: string | undefined, email: string, submittedAt: string, newPin: string) => Promise<void>;
+  onUpdateSubmissionEmail?: (id: string | undefined, oldEmail: string, submittedAt: string, newEmail: string) => Promise<void>;
   isEditingLocked?: boolean;
   onToggleEditingLock?: (locked: boolean) => Promise<void> | void;
   isRegistrationLocked?: boolean;
@@ -77,6 +78,7 @@ export default function ListaParticipantes({
   onDeleteSubmission,
   onGenerateMockData,
   onUpdateSubmissionPin,
+  onUpdateSubmissionEmail,
   isEditingLocked = false,
   onToggleEditingLock,
   isRegistrationLocked = false,
@@ -140,6 +142,17 @@ export default function ListaParticipantes({
   const [newPlayerPinInput, setNewPlayerPinInput] = useState("");
   const [playerPinError, setPlayerPinError] = useState("");
   const [isUpdatingPin, setIsUpdatingPin] = useState(false);
+
+  // Edit Player Email states
+  const [editingPlayerEmail, setEditingPlayerEmail] = useState<{
+    id: string | undefined;
+    email: string;
+    submittedAt: string;
+    name: string;
+  } | null>(null);
+  const [newPlayerEmailInput, setNewPlayerEmailInput] = useState("");
+  const [playerEmailError, setPlayerEmailError] = useState("");
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   const handleGenerateTestParticipants = async () => {
     if (!onGenerateMockData) return;
@@ -236,6 +249,38 @@ export default function ListaParticipantes({
       console.error(err);
     } finally {
       setIsUpdatingPin(false);
+    }
+  };
+
+  const handleUpdatePlayerEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlayerEmail || !onUpdateSubmissionEmail) return;
+
+    const emailStr = newPlayerEmailInput.trim().toLowerCase();
+    if (!emailStr) {
+      setPlayerEmailError("El correo electrónico no puede estar vacío.");
+      return;
+    }
+    if (!emailStr.includes("@") || !emailStr.includes(".")) {
+      setPlayerEmailError("Introduce una dirección de correo válida.");
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    setPlayerEmailError("");
+    try {
+      await onUpdateSubmissionEmail(
+        editingPlayerEmail.id,
+        editingPlayerEmail.email,
+        editingPlayerEmail.submittedAt,
+        emailStr
+      );
+      setEditingPlayerEmail(null);
+    } catch (err: any) {
+      setPlayerEmailError(err?.message || "Error al actualizar el correo.");
+      console.error(err);
+    } finally {
+      setIsUpdatingEmail(false);
     }
   };
 
@@ -996,6 +1041,24 @@ export default function ListaParticipantes({
                     <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 mt-1.5 text-xs text-white/50 flex-wrap">
                       <span className="flex items-center gap-1.5 truncate max-w-[170px] sm:max-w-none">
                         <Mail className="w-3.5 h-3.5 text-white/30" /> {isAdmin ? sub.participant.email : maskEmail(sub.participant.email)}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPlayerEmail({
+                                id: sub.id,
+                                email: sub.participant.email,
+                                submittedAt: sub.submittedAt,
+                                name: sub.participant.name,
+                              });
+                              setNewPlayerEmailInput(sub.participant.email);
+                              setPlayerEmailError("");
+                            }}
+                            className="ml-1 text-[10px] font-mono font-black text-[#00FF00]/80 hover:text-white underline uppercase cursor-pointer"
+                          >
+                            Editar
+                          </button>
+                        )}
                       </span>
                       {sub.participant.phone && (
                         <span className="flex items-center gap-1.5">
@@ -1308,6 +1371,67 @@ export default function ListaParticipantes({
                     <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
                   ) : (
                     "Confirmar PIN"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Edit Player Email modal */}
+      {editingPlayerEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-left">
+            <div className="p-3 bg-[#00FF00]/10 border border-[#00FF00]/20 rounded-full w-fit mx-auto text-[#00FF00]">
+              <Mail className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="text-xl font-bold font-serif italic text-white">Editar Correo de Jugador</h3>
+              <p className="text-[11px] text-white/50 leading-relaxed">
+                Modifica el correo electrónico de <strong className="text-white">{editingPlayerEmail.name}</strong>. Esta dirección de email es su clave de acceso para ver o modificar su boleto de quiniela.
+              </p>
+            </div>
+
+            <form onSubmit={handleUpdatePlayerEmail} className="space-y-4">
+              <div>
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-white/40 mb-1.5 font-mono">Nuevo Correo Electrónico</label>
+                <input
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={newPlayerEmailInput}
+                  onChange={(e) => {
+                    setNewPlayerEmailInput(e.target.value);
+                    if (playerEmailError) setPlayerEmailError("");
+                  }}
+                  className="block w-full px-4 py-2.5 bg-[#121212] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/15 rounded-lg text-center text-sm font-sans font-medium text-white placeholder-white/20 focus:outline-none"
+                  autoFocus
+                />
+                {playerEmailError && (
+                  <p className="text-red-400 text-[11px] font-mono text-center mt-2 flex items-center justify-center gap-1 font-bold">
+                    <AlertCircle className="w-3.5 h-3.5" /> {playerEmailError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={isUpdatingEmail}
+                  onClick={() => setEditingPlayerEmail(null)}
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingEmail}
+                  className="flex-1 py-2.5 bg-[#00FF00] hover:bg-white text-black rounded-lg text-xs font-black transition-colors cursor-pointer uppercase tracking-tight text-center flex items-center justify-center gap-1"
+                >
+                  {isUpdatingEmail ? (
+                    <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+                  ) : (
+                    "Confirmar Email"
                   )}
                 </button>
               </div>

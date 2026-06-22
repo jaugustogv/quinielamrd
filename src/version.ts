@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.11.0";
+export const APP_VERSION = "2.12.0";
 export const VERSION_DATE = "22 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.12.0",
+    date: "22 Junio 2026",
+    title: "Edición Segura de Correo de Participante",
+    description: "Permite a los administradores corregir y actualizar las direcciones de correo electrónico de los participantes registrados desde la lista de inscritos. Incluye validaciones contra duplicados, sincronización con LocalStorage y bases de datos en la nube sin pérdida de información de apuestas o tokens de acceso.",
+    type: "minor"
+  },
   {
     version: "2.11.0",
     date: "22 Junio 2026",
