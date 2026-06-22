@@ -653,153 +653,155 @@ export default function ListaParticipantes({
 
       {isAdmin && (
         <div className="bg-[#00FF00]/5 border border-[#00FF00]/15 rounded-xl p-5 mb-6 animate-fade-in text-left">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-5">
             <div className="space-y-1">
               <p className="text-xs font-bold text-[#00FF00] uppercase tracking-wider flex items-center gap-1.5">
                 🛠️ Panel de Herramientas de Administrador
               </p>
-              <p className="text-[11px] text-white/60 leading-relaxed max-w-xl">
-                Accede a utilidades de exportación, diagnóstico y control de cierres. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel, restaurar la base de datos o bloquear la inscripción de nuevos participantes en el sistema.
+              <p className="text-[11px] text-white/60 leading-relaxed max-w-2xl">
+                Accede a las utilidades de exportación, diagnóstico y control de cierres del sistema. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel de respaldo, restaurar la base de datos o bloquear de forma independiente el registro y edición de cada fase en tiempo real.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0">
-              <button
-                id="btn-admin-download-excel"
-                type="button"
-                onClick={handleDownloadAllExcel}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 font-black py-2.5 px-4 bg-[#00FF00] hover:bg-white text-black font-extrabold rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                Descargar Todo (Excel)
-              </button>
-
-              <button
-                id="btn-admin-restore-excel"
-                type="button"
-                onClick={() => document.getElementById("restore-xlsx-file")?.click()}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 font-extrabold py-2.5 px-4 bg-purple-950/45 hover:bg-purple-900 border border-purple-500/30 hover:border-purple-400 text-purple-300 hover:text-white rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
-              >
-                <Upload className="w-4 h-4 shrink-0" />
-                {isParsingExcel ? "Cargando..." : "Restaurar (Excel)"}
-              </button>
-              <input
-                id="restore-xlsx-file"
-                type="file"
-                accept=".xlsx"
-                onChange={handleRestoreExcelUpload}
-                className="hidden"
-              />
-
-              <button
-                id="btn-admin-toggle-edit-lock"
-                type="button"
-                onClick={() => onToggleEditingLock && onToggleEditingLock(!isEditingLocked)}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                  isEditingLocked
-                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                    : "bg-amber-950/45 border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-black"
-                }`}
-              >
-                {isEditingLocked ? (
-                  <>
-                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                    Edición: Bloqueada
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4 text-amber-400 shrink-0 opacity-70" />
-                    Edición: Permitida
-                  </>
-                )}
-              </button>
-
-              <button
-                id="btn-admin-toggle-reg-lock"
-                type="button"
-                onClick={() => onToggleRegistrationLock && onToggleRegistrationLock(!isRegistrationLocked)}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                  isRegistrationLocked
-                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
-                }`}
-              >
-                {isRegistrationLocked ? (
-                  <>
-                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                    Registros: Bloqueados
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
-                    Registros: Abiertos
-                  </>
-                )}
-              </button>
-
-              <button
-                id="btn-admin-toggle-group-lock"
-                type="button"
-                onClick={() => onToggleGroupPhaseLock && onToggleGroupPhaseLock(!isGroupPhaseLocked)}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                  isGroupPhaseLocked
-                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
-                }`}
-              >
-                {isGroupPhaseLocked ? (
-                  <>
-                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                    Grupo (1-72): Cerrado
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
-                    Grupo (1-72): Abierto
-                  </>
-                )}
-              </button>
-
-              <button
-                id="btn-admin-toggle-second-lock"
-                type="button"
-                onClick={() => onToggleSecondPhaseLock && onToggleSecondPhaseLock(!isSecondPhaseLocked)}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                  isSecondPhaseLocked
-                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
-                }`}
-              >
-                {isSecondPhaseLocked ? (
-                  <>
-                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                    16avos (73-88): Cerrado
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
-                    16avos (73-88): Abierto
-                  </>
-                )}
-              </button>
-
-              {onGenerateMockData && (
+            <div className="border-t border-white/10 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 w-full">
                 <button
-                  id="btn-admin-generate-mockups"
+                  id="btn-admin-download-excel"
                   type="button"
-                  disabled={isGeneratingMock}
-                  onClick={handleGenerateTestParticipants}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter disabled:opacity-50 cursor-pointer"
+                  onClick={handleDownloadAllExcel}
+                  className="w-full h-11 flex items-center justify-center gap-2 font-black px-4 bg-[#00FF00] hover:bg-white text-black rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
                 >
-                  {isGeneratingMock ? (
+                  <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  Descargar Todo (Excel)
+                </button>
+
+                <button
+                  id="btn-admin-restore-excel"
+                  type="button"
+                  onClick={() => document.getElementById("restore-xlsx-file")?.click()}
+                  className="w-full h-11 flex items-center justify-center gap-2 font-extrabold px-4 bg-[#6A0DAD]/20 hover:bg-[#6A0DAD]/35 border border-purple-500/30 hover:border-purple-400 text-purple-300 hover:text-white rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 shrink-0" />
+                  {isParsingExcel ? "Cargando..." : "Restaurar (Excel)"}
+                </button>
+                <input
+                  id="restore-xlsx-file"
+                  type="file"
+                  accept=".xlsx"
+                  onChange={handleRestoreExcelUpload}
+                  className="hidden"
+                />
+
+                <button
+                  id="btn-admin-toggle-edit-lock"
+                  type="button"
+                  onClick={() => onToggleEditingLock && onToggleEditingLock(!isEditingLocked)}
+                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                    isEditingLocked
+                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                      : "bg-amber-950/45 border-amber-500/30 text-amber-300 hover:bg-amber-500 hover:text-black"
+                  }`}
+                >
+                  {isEditingLocked ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> Generando...
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      Edición: Bloqueada
                     </>
                   ) : (
-                    "Crear 5 Participantes"
+                    <>
+                      <Lock className="w-4 h-4 text-amber-400 shrink-0 opacity-70" />
+                      Edición: Permitida
+                    </>
                   )}
                 </button>
-              )}
+
+                <button
+                  id="btn-admin-toggle-reg-lock"
+                  type="button"
+                  onClick={() => onToggleRegistrationLock && onToggleRegistrationLock(!isRegistrationLocked)}
+                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                    isRegistrationLocked
+                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                      : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                  }`}
+                >
+                  {isRegistrationLocked ? (
+                    <>
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      Registros: Bloqueados
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                      Registros: Abiertos
+                    </>
+                  )}
+                </button>
+
+                <button
+                  id="btn-admin-toggle-group-lock"
+                  type="button"
+                  onClick={() => onToggleGroupPhaseLock && onToggleGroupPhaseLock(!isGroupPhaseLocked)}
+                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                    isGroupPhaseLocked
+                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                      : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                  }`}
+                >
+                  {isGroupPhaseLocked ? (
+                    <>
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      Grupo (1-72): Cerrado
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                      Grupo (1-72): Abierto
+                    </>
+                  )}
+                </button>
+
+                <button
+                  id="btn-admin-toggle-second-lock"
+                  type="button"
+                  onClick={() => onToggleSecondPhaseLock && onToggleSecondPhaseLock(!isSecondPhaseLocked)}
+                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                    isSecondPhaseLocked
+                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                      : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                  }`}
+                >
+                  {isSecondPhaseLocked ? (
+                    <>
+                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                      16avos (73-88): Cerrado
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                      16avos (73-88): Abierto
+                    </>
+                  )}
+                </button>
+
+                {onGenerateMockData && (
+                  <button
+                    id="btn-admin-generate-mockups"
+                    type="button"
+                    disabled={isGeneratingMock}
+                    onClick={handleGenerateTestParticipants}
+                    className="w-full h-11 flex items-center justify-center gap-2 font-bold px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter disabled:opacity-50 cursor-pointer"
+                  >
+                    {isGeneratingMock ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" /> Generando...
+                      </>
+                    ) : (
+                      "Crear 5 Participantes"
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

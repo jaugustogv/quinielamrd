@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.10.0";
+export const APP_VERSION = "2.11.0";
 export const VERSION_DATE = "22 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.11.0",
+    date: "22 Junio 2026",
+    title: "Rediseño Responsivo del Panel de Administrador",
+    description: "Reorganización completa del contenedor de herramientas de administración para utilizar una rejilla CSS moderna y responsiva. Se solventan desbordamientos o solapamientos visuales de botones de control y utilidades Excel en todo tipo de pantallas.",
+    type: "minor"
+  },
   {
     version: "2.10.0",
     date: "22 Junio 2026",
