@@ -331,6 +331,127 @@ export async function saveEditingLocked(locked: boolean): Promise<void> {
   }
 }
 
+/**
+ * Gets whether registering new participants is locked/blocked by the admin.
+ */
+export async function getRegistrationLocked(): Promise<boolean> {
+  const localVal = localStorage.getItem("registration_locked") === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.registrationLocked === "boolean") {
+          localStorage.setItem("registration_locked", String(data.registrationLocked));
+          return data.registrationLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch registration lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether registering new participants is locked/blocked by the admin.
+ */
+export async function saveRegistrationLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("registration_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { registrationLocked: locked }, { merge: true });
+      console.log("Registration lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save registration lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Fase de Grupos (Partidos 1-72) editing is locked.
+ * Defaults to true.
+ */
+export async function getGroupPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("group_phase_locked");
+  const localVal = stored === null ? true : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.groupPhaseLocked === "boolean") {
+          localStorage.setItem("group_phase_locked", String(data.groupPhaseLocked));
+          return data.groupPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch group phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Fase de Grupos (Partidos 1-72) editing is locked.
+ */
+export async function saveGroupPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("group_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { groupPhaseLocked: locked }, { merge: true });
+      console.log("Group phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save group phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Segunda Fase (Partidos 73-88) editing is locked.
+ * Defaults to false.
+ */
+export async function getSecondPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("second_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.secondPhaseLocked === "boolean") {
+          localStorage.setItem("second_phase_locked", String(data.secondPhaseLocked));
+          return data.secondPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch second phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Segunda Fase (Partidos 73-88) editing is locked.
+ */
+export async function saveSecondPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("second_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { secondPhaseLocked: locked }, { merge: true });
+      console.log("Second phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save second phase lock status to Firestore:", e);
+    }
+  }
+}
+
 
 
 

@@ -39,6 +39,12 @@ interface ListaParticipantesProps {
   onUpdateSubmissionPin?: (id: string | undefined, email: string, submittedAt: string, newPin: string) => Promise<void>;
   isEditingLocked?: boolean;
   onToggleEditingLock?: (locked: boolean) => Promise<void> | void;
+  isRegistrationLocked?: boolean;
+  onToggleRegistrationLock?: (locked: boolean) => Promise<void> | void;
+  isGroupPhaseLocked?: boolean;
+  onToggleGroupPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isSecondPhaseLocked?: boolean;
+  onToggleSecondPhaseLock?: (locked: boolean) => Promise<void> | void;
   onRefreshSubmissions?: () => Promise<void> | void;
 }
 
@@ -73,6 +79,12 @@ export default function ListaParticipantes({
   onUpdateSubmissionPin,
   isEditingLocked = false,
   onToggleEditingLock,
+  isRegistrationLocked = false,
+  onToggleRegistrationLock,
+  isGroupPhaseLocked = true,
+  onToggleGroupPhaseLock,
+  isSecondPhaseLocked = false,
+  onToggleSecondPhaseLock,
   onRefreshSubmissions
 }: ListaParticipantesProps) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -250,7 +262,7 @@ export default function ListaParticipantes({
           ["Correo Electrónico", maskEmail(sub.participant.email)],
           ["Teléfono de Contacto", sub.participant.phone ? maskPhone(sub.participant.phone) : "No registrado"],
           ["Fecha y Hora del Último Registro", new Date(sub.submittedAt).toLocaleString("es-ES")],
-          ["Partidos Pronosticados", `${sub.totalMatchesPredicted} / 72`],
+          ["Partidos Pronosticados", `${sub.totalMatchesPredicted} / ${MATCHES.length}`],
           [], // Empty spacer row
           ["ESTRUCTURA DE PARTIDOS & PRONÓSTICOS"],
           ["Partido ID", "Grupo", "Equipo Local", "Pronóstico Local", "Pronóstico Visitante", "Equipo Visitante"]
@@ -647,7 +659,7 @@ export default function ListaParticipantes({
                 🛠️ Panel de Herramientas de Administrador
               </p>
               <p className="text-[11px] text-white/60 leading-relaxed max-w-xl">
-                Accede a utilidades de exportación y diagnóstico. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel o restaurar toda la base de datos subiendo dicha plantilla de respaldo.
+                Accede a utilidades de exportación, diagnóstico y control de cierres. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel, restaurar la base de datos o bloquear la inscripción de nuevos participantes en el sistema.
               </p>
             </div>
             
@@ -698,6 +710,75 @@ export default function ListaParticipantes({
                   <>
                     <Lock className="w-4 h-4 text-amber-400 shrink-0 opacity-70" />
                     Edición: Permitida
+                  </>
+                )}
+              </button>
+
+              <button
+                id="btn-admin-toggle-reg-lock"
+                type="button"
+                onClick={() => onToggleRegistrationLock && onToggleRegistrationLock(!isRegistrationLocked)}
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                  isRegistrationLocked
+                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                }`}
+              >
+                {isRegistrationLocked ? (
+                  <>
+                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                    Registros: Bloqueados
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                    Registros: Abiertos
+                  </>
+                )}
+              </button>
+
+              <button
+                id="btn-admin-toggle-group-lock"
+                type="button"
+                onClick={() => onToggleGroupPhaseLock && onToggleGroupPhaseLock(!isGroupPhaseLocked)}
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                  isGroupPhaseLocked
+                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                }`}
+              >
+                {isGroupPhaseLocked ? (
+                  <>
+                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                    Grupo (1-72): Cerrado
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                    Grupo (1-72): Abierto
+                  </>
+                )}
+              </button>
+
+              <button
+                id="btn-admin-toggle-second-lock"
+                type="button"
+                onClick={() => onToggleSecondPhaseLock && onToggleSecondPhaseLock(!isSecondPhaseLocked)}
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 font-bold py-2.5 px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
+                  isSecondPhaseLocked
+                    ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                    : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                }`}
+              >
+                {isSecondPhaseLocked ? (
+                  <>
+                    <Lock className="w-4 h-4 text-red-400 shrink-0" />
+                    16avos (73-88): Cerrado
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
+                    16avos (73-88): Abierto
                   </>
                 )}
               </button>
@@ -952,17 +1033,17 @@ export default function ListaParticipantes({
                     </p>
                     <div className="mt-1.5 flex flex-col items-start sm:items-end gap-1">
                       <p className="text-xs font-mono font-bold text-[#00FF00] flex items-center gap-1.5 sm:justify-end">
-                        <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / 72 Partidos
+                        <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / {MATCHES.length} Partidos
                       </p>
                       {/* Percent Fill & Visual Meter */}
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
-                          {Math.round((sub.totalMatchesPredicted / 72) * 100)}% Completado
+                          {Math.round((sub.totalMatchesPredicted / MATCHES.length) * 100)}% Completado
                         </span>
                         <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden shrink-0 hidden sm:block">
                           <div 
                             className="bg-[#00FF00] h-full rounded-full" 
-                            style={{ width: `${(sub.totalMatchesPredicted / 72) * 100}%` }}
+                            style={{ width: `${(sub.totalMatchesPredicted / MATCHES.length) * 100}%` }}
                           />
                         </div>
                       </div>

@@ -22,7 +22,7 @@ import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
 import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
-import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked } from "./storage";
+import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked, getRegistrationLocked, saveRegistrationLocked, getGroupPhaseLocked, saveGroupPhaseLocked, getSecondPhaseLocked, saveSecondPhaseLocked } from "./storage";
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
@@ -42,6 +42,9 @@ export default function App() {
   const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [isEditingLocked, setIsEditingLocked] = useState(false);
+  const [isRegistrationLocked, setIsRegistrationLocked] = useState(false);
+  const [isGroupPhaseLocked, setIsGroupPhaseLocked] = useState(true);
+  const [isSecondPhaseLocked, setIsSecondPhaseLocked] = useState(false);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -121,6 +124,12 @@ export default function App() {
         // Load lock state
         const locked = await getEditingLocked();
         setIsEditingLocked(locked);
+        const regLocked = await getRegistrationLocked();
+        setIsRegistrationLocked(regLocked);
+        const gpLock = await getGroupPhaseLocked();
+        setIsGroupPhaseLocked(gpLock);
+        const spLock = await getSecondPhaseLocked();
+        setIsSecondPhaseLocked(spLock);
       } catch (err) {
         console.warn("Silent sync error on load:", err);
         // Load fallback local items if Firestore fails
@@ -332,6 +341,33 @@ export default function App() {
     }
   };
 
+  const handleToggleRegistrationLock = async (newVal: boolean) => {
+    try {
+      await saveRegistrationLocked(newVal);
+      setIsRegistrationLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change registration lock state:", err);
+    }
+  };
+
+  const handleToggleGroupPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveGroupPhaseLocked(newVal);
+      setIsGroupPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change group phase lock state:", err);
+    }
+  };
+
+  const handleToggleSecondPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveSecondPhaseLocked(newVal);
+      setIsSecondPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change second phase lock state:", err);
+    }
+  };
+
   const handleReloadAllSubmissions = async () => {
     try {
       const data = await getAllSubmissions();
@@ -373,7 +409,7 @@ export default function App() {
         participant,
         predictions,
         submittedAt: new Date(Date.now() - Math.random() * 10 * 3600000).toISOString(),
-        totalMatchesPredicted: 72
+        totalMatchesPredicted: MATCHES.length
       };
 
       try {
@@ -475,7 +511,7 @@ export default function App() {
                     </h2>
                     
                     <p className="mt-6 text-sm sm:text-base text-white/60 leading-relaxed max-w-xl font-light">
-                      Participa en la quiniela más completa. Registra tus pronósticos para los <span className="text-white font-bold pb-0.5 border-b border-[#00FF00]/40">72 partidos oficiales</span> de la Fase de Grupos y demuestra que eres el mayor conocedor de fútbol.
+                      La <strong className="text-[#00FF00]">Fase de Grupos (72 partidos) ha cerrado</strong>. Pronostica de manera exclusiva los <span className="text-white font-bold pb-0.5 border-b border-[#00FF00]/40">16 partidos de la Segunda Fase (16avos de Final)</span> y demuestra que eres el mayor conocedor de fútbol del torneo.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-10">
@@ -574,8 +610,8 @@ export default function App() {
                           A3
                         </div>
                         <div>
-                          <p className="font-bold text-white">72 Cotejos de Inauguración</p>
-                          <p className="text-white/50 mt-1 font-light leading-relaxed">Secuencia de partidos oficiales ordenada con precisión suiza igual a las planillas estándar.</p>
+                          <p className="font-bold text-white">{MATCHES.length} Cotejos Oficiales</p>
+                          <p className="text-white/50 mt-1 font-light leading-relaxed">Secuencia de partidos oficiales (72 de grupos y 16 de 16avos) ordenada con precisión.</p>
                         </div>
                       </div>
                     </div>
@@ -625,7 +661,7 @@ export default function App() {
                             <div className="text-left font-sans space-y-3">
                               <p className="font-bold text-white mb-1 uppercase tracking-tight text-xs">¡Quiniela Encontrada!</p>
                               <p className="text-white/70">
-                                Hola <strong>{searchEmailFeedback.name}</strong>, tienes <strong>{searchEmailFeedback.count}/72</strong> partidos pronosticados.
+                                Hola <strong>{searchEmailFeedback.name}</strong>, tienes <strong>{searchEmailFeedback.count}/{MATCHES.length}</strong> partidos pronosticados.
                               </p>
                               
                               {searchEmailFeedback.submission.participant.pin && !isSearchUnlocked ? (
@@ -806,10 +842,10 @@ export default function App() {
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
-                                  {Math.round((sub.totalMatchesPredicted / 72) * 100)}%
+                                  {Math.round((sub.totalMatchesPredicted / MATCHES.length) * 100)}%
                                 </span>
                                 <span className="px-2 py-0.5 bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] text-[10px] font-mono font-bold rounded flex items-center gap-1 select-none">
-                                  {!isOwnSubmission && <Lock className="w-2.5 h-2.5 text-[#00FF00]/60 shrink-0" />} {sub.totalMatchesPredicted}/72
+                                  {!isOwnSubmission && <Lock className="w-2.5 h-2.5 text-[#00FF00]/60 shrink-0" />} {sub.totalMatchesPredicted}/{MATCHES.length}
                                 </span>
                               </div>
                             </div>
@@ -832,6 +868,9 @@ export default function App() {
                   initialEmail={resumeEmail}
                   onClearInitialEmail={() => setResumeEmail("")}
                   isEditingLocked={isEditingLocked}
+                  isRegistrationLocked={isRegistrationLocked}
+                  isGroupPhaseLocked={isGroupPhaseLocked}
+                  isSecondPhaseLocked={isSecondPhaseLocked}
                 />
               </div>
             )}
@@ -862,6 +901,12 @@ export default function App() {
                   onUpdateSubmissionPin={handleUpdateSubmissionPin}
                   isEditingLocked={isEditingLocked}
                   onToggleEditingLock={handleToggleEditingLock}
+                  isRegistrationLocked={isRegistrationLocked}
+                  onToggleRegistrationLock={handleToggleRegistrationLock}
+                  isGroupPhaseLocked={isGroupPhaseLocked}
+                  onToggleGroupPhaseLock={handleToggleGroupPhaseLock}
+                  isSecondPhaseLocked={isSecondPhaseLocked}
+                  onToggleSecondPhaseLock={handleToggleSecondPhaseLock}
                   onRefreshSubmissions={handleReloadAllSubmissions}
                 />
               </div>

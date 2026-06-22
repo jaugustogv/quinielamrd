@@ -38,6 +38,9 @@ interface FormularioRegistroProps {
   initialEmail?: string;
   onClearInitialEmail?: () => void;
   isEditingLocked?: boolean;
+  isRegistrationLocked?: boolean;
+  isGroupPhaseLocked?: boolean;
+  isSecondPhaseLocked?: boolean;
 }
 
 export default function FormularioRegistro({ 
@@ -46,11 +49,20 @@ export default function FormularioRegistro({
   submissions = [],
   initialEmail = "",
   onClearInitialEmail,
-  isEditingLocked = false
+  isEditingLocked = false,
+  isRegistrationLocked = false,
+  isGroupPhaseLocked = true,
+  isSecondPhaseLocked = false
 }: FormularioRegistroProps) {
   // Step 1: Info, Step 2: Predictions
   const [step, setStep] = useState<1 | 2>(1);
   const isReadOnlySession = isEditingLocked;
+
+  const isMatchLocked = (matchId: number): boolean => {
+    if (isReadOnlySession) return true;
+    if (matchId <= 72) return isGroupPhaseLocked;
+    return isSecondPhaseLocked;
+  };
 
   
   // Custom dialog states to bypass iframe native prompt/alert blocks completely
@@ -80,10 +92,32 @@ export default function FormularioRegistro({
     ) || null;
   }, [email, submissions]);
 
-  // Active Group filtering (Groups A to L)
+  // Active Phase and Group filtering (Groups A to L and 16avos de Final)
+  const [activePhase, setActivePhase] = useState<"grupos" | "16avos">("grupos");
   const groupsList = useMemo(() => ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"], []);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
-  const activeGroup = `Grupo ${groupsList[activeGroupIndex]}`;
+  const activeGroup = useMemo(() => {
+    return activePhase === "grupos" ? `Grupo ${groupsList[activeGroupIndex]}` : "16avos de Final";
+  }, [activePhase, groupsList, activeGroupIndex]);
+
+  const handlePrevGroup = () => {
+    if (activePhase === "16avos") {
+      setActivePhase("grupos");
+      setActiveGroupIndex(groupsList.length - 1);
+    } else {
+      setActiveGroupIndex((prev) => Math.max(0, prev - 1));
+    }
+  };
+
+  const handleNextGroup = () => {
+    if (activePhase === "grupos") {
+      if (activeGroupIndex === groupsList.length - 1) {
+        setActivePhase("16avos");
+      } else {
+        setActiveGroupIndex((prev) => prev + 1);
+      }
+    }
+  };
 
   // Predictions State: key is match.id (1 to 72)
   const [predictions, setPredictions] = useState<{
@@ -145,7 +179,13 @@ export default function FormularioRegistro({
     ).length;
   }, [predictions]);
 
-  const progressPercentage = Math.round((totalPredicted / 72) * 100);
+  const totalEditablePredicted = useMemo(() => {
+    return Object.entries(predictions).filter(
+      ([id, p]: [string, any]) => Number(id) >= 73 && p.homeScore !== "" && p.awayScore !== ""
+    ).length;
+  }, [predictions]);
+
+  const progressPercentage = Math.round((totalPredicted / MATCHES.length) * 100);
 
   // Grouped matches helper
   const filteredMatches = useMemo(() => {
@@ -232,6 +272,7 @@ export default function FormularioRegistro({
 
   // Increment/Decrement score helpers
   const updateScore = (matchId: number, team: "home" | "away", action: "inc" | "dec" | number) => {
+    if (isMatchLocked(matchId)) return; // Check if the match phase or whole editing is locked
     setPredictions((prev) => {
       const current = prev[matchId];
       let val = team === "home" ? current.homeScore : current.awayScore;
@@ -277,7 +318,7 @@ export default function FormularioRegistro({
     ];
     const filled: any = { ...predictions };
     MATCHES.forEach((m) => {
-      if (filled[m.id].homeScore === "" || filled[m.id].awayScore === "") {
+      if (!isMatchLocked(m.id) && (filled[m.id].homeScore === "" || filled[m.id].awayScore === "")) {
         const pick = randomScores[Math.floor(Math.random() * randomScores.length)];
         filled[m.id] = { homeScore: pick.h, awayScore: pick.a };
       }
@@ -335,7 +376,7 @@ export default function FormularioRegistro({
       return;
     }
 
-    if (totalPredicted < 72) {
+    if (!isSecondPhaseLocked && totalEditablePredicted < 16) {
       setShowIncompleteConfirm(true);
     } else {
       executeSubmit();
@@ -397,8 +438,19 @@ export default function FormularioRegistro({
               <p className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5 font-mono mb-1.5">
                 🔒 Inscripciones y Ediciones Bloqueadas
               </p>
-              <p className="text-[11px] text-white/70 leading-relaxed font-light">
+              <p className="text-[11px] text-white/70 leading-relaxed font-light font-sans">
                 El administrador ha cerrado las inscripciones y modificaciones por fecha límite externa. Si ya te habías registrado, puedes colocar tu correo abajo y usar tu PIN de seguridad para visualizar tus pronósticos anteriores en modo de <strong>Solo Lectura</strong>.
+              </p>
+            </div>
+          )}
+
+          {isRegistrationLocked && !isEditingLocked && (
+            <div className="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-left animate-fade-in">
+              <p className="text-xs font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5 font-mono mb-1.5">
+                🔒 Nuevos Registros Bloqueados
+              </p>
+              <p className="text-[11px] text-[#DDDDDD] leading-relaxed font-light font-sans">
+                El administrador ha cerrado el registro de nuevos participantes. Si ya estabas inscrito, coloca tu dirección de correo abajo y escribe tu clave PIN de seguridad de 4 dígitos para continuar completando/actualizando tu planilla de Segunda Fase (16avos de Final).
               </p>
             </div>
           )}
@@ -565,97 +617,128 @@ export default function FormularioRegistro({
               </div>
             ) : (
               /* NEW REGISTRATION OR FULL EDITING ACCESS MODE */
-              <>
-                <div>
-                  <label id="lbl-name" htmlFor="txt-name" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                    Nombre Completo <span className="text-[#00FF00]">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                      <User className="w-5 h-5" />
+              isRegistrationLocked ? (
+                (() => {
+                  const hasValidEmailText = email.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+                  
+                  return hasValidEmailText ? (
+                    /* NEW REGISTRATION BLOCKED - EMAIL NOT FOUND VIEW */
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5 text-center animate-fade-in space-y-3.5">
+                      <p className="text-xs font-bold text-red-400 uppercase tracking-widest font-mono flex items-center justify-center gap-1.5">
+                        <Lock className="w-4.5 h-4.5 text-red-400 shrink-0" /> Correo no registrado
+                      </p>
+                      <p className="text-xs text-white/70 leading-relaxed font-light font-mono bg-white/2 border border-white/5 p-2 rounded">
+                        {email}
+                      </p>
+                      <p className="text-[11px] text-yellow-500 bg-yellow-500/5 border border-yellow-500/10 p-3.5 rounded-lg leading-relaxed font-semibold">
+                        Debido a que el registro de nuevos participantes está cerrado, no es posible inscribirse. Si ya te registraste, por favor asegúrate de escribir tu correo con total precisión.
+                      </p>
                     </div>
-                    <input
-                      id="txt-name"
-                      type="text"
-                      placeholder="Augusto González"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value);
-                        if (e.target.value.trim()) setErrors((prev) => ({ ...prev, name: undefined }));
-                      }}
-                      className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
-                        errors.name ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
-                      } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20`}
-                    />
-                  </div>
-                  {errors.name && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.name}</p>}
-                </div>
-
-                <div>
-                  <label id="lbl-phone" htmlFor="txt-phone" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                    WhatsApp / Celular <span className="text-white/30 font-normal font-sans">(Opcional)</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                      <Phone className="w-5 h-5" />
+                  ) : (
+                    /* NEW REGISTRATION BLOCKED - PROMPT EMAIL VIEW */
+                    <div className="bg-yellow-500/5 border border-yellow-500/15 rounded-xl p-5 text-center animate-fade-in space-y-3">
+                      <p className="text-xs font-bold text-yellow-500 uppercase tracking-widest font-mono flex items-center justify-center gap-1.5">
+                        <Mail className="w-4.5 h-4.5 text-yellow-500/70" /> Introducir Correo
+                      </p>
+                      <p className="text-xs text-white/60 leading-relaxed font-light">
+                        Por favor, ingresa tu dirección de correo electrónico arriba para verificar tu perfil de participante y continuar de inmediato.
+                      </p>
                     </div>
-                    <input
-                      id="txt-phone"
-                      type="tel"
-                      placeholder="Ej: +58 412 1234567"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="block w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20"
-                    />
-                  </div>
-                  <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
-                    Utilizado para generar el enlace directo que envía tus marcadores en un solo bloque a WhatsApp.
-                  </p>
-                </div>
-
-                <div>
-                  <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
-                    Clave PIN de Seguridad <span className="text-[#00FF00]">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
-                      <Lock className="w-5 h-5 text-white/30" />
+                  );
+                })()
+              ) : (
+                <>
+                  <div>
+                    <label id="lbl-name" htmlFor="txt-name" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                      Nombre Completo <span className="text-[#00FF00]">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                        <User className="w-5 h-5" />
+                      </div>
+                      <input
+                        id="txt-name"
+                        type="text"
+                        placeholder="Augusto González"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          if (e.target.value.trim()) setErrors((prev) => ({ ...prev, name: undefined }));
+                        }}
+                        className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
+                          errors.name ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                        } rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20`}
+                      />
                     </div>
-                    <input
-                      id="txt-pin"
-                      type="password"
-                      inputMode="numeric"
-                      pattern="\d*"
-                      maxLength={4}
-                      placeholder="••••"
-                      value={pin}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-                        setPin(val);
-                        if (val.length === 4) {
-                          setErrors((prev) => ({ ...prev, pin: undefined }));
-                        }
-                      }}
-                      className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
-                        errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
-                      } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all placeholder-white/20`}
-                    />
+                    {errors.name && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.name}</p>}
                   </div>
-                  {errors.pin && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
-                  <p className="text-[10px] text-white/40 mt-2 leading-relaxed font-light">
-                    Crea una clave numérica de 4 dígitos para poder volver a acceder o modificar tus marcadores en el futuro.
-                  </p>
-                </div>
 
-                <button
-                  id="btn-go-to-predictions"
-                  disabled={isEditingLocked}
-                  onClick={handleNextStep}
-                  className="w-full bg-[#00FF00] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
-                >
-                  {isEditingLocked ? "Inscripciones Cerradas" : "Comenzar a Pronosticar"} {!isEditingLocked && <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />}
-                </button>
-              </>
+                  <div>
+                    <label id="lbl-phone" htmlFor="txt-phone" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                      WhatsApp / Celular <span className="text-white/30 font-normal font-sans">(Opcional)</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                        <Phone className="w-5 h-5" />
+                      </div>
+                      <input
+                        id="txt-phone"
+                        type="tel"
+                        placeholder="Ej: +58 412 1234567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="block w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10 rounded-lg focus:outline-none focus:ring-4 font-medium text-white transition-all placeholder-white/20"
+                      />
+                    </div>
+                    <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
+                      Utilizado para generar el enlace directo que envía tus marcadores en un solo bloque a WhatsApp.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label id="lbl-pin" htmlFor="txt-pin" className="block text-[10px] uppercase font-semibold tracking-widest text-[#00FF00] mb-2 font-mono">
+                      Clave PIN de Seguridad <span className="text-[#00FF00]">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                        <Lock className="w-5 h-5 text-white/30" />
+                      </div>
+                      <input
+                        id="txt-pin"
+                        type="password"
+                        inputMode="numeric"
+                        pattern="\d*"
+                        maxLength={4}
+                        placeholder="••••"
+                        value={pin}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                          setPin(val);
+                          if (val.length === 4) {
+                            setErrors((prev) => ({ ...prev, pin: undefined }));
+                          }
+                        }}
+                        className={`block w-full pl-11 pr-4 py-3.5 bg-white/5 border ${
+                          errors.pin ? "border-red-500 focus:ring-red-500/20" : "border-white/10 focus:border-[#00FF00] focus:ring-[#00FF00]/10"
+                        } rounded-lg focus:outline-none focus:ring-4 font-mono font-black tracking-[0.5em] text-center text-sm text-white transition-all placeholder-white/20`}
+                      />
+                    </div>
+                    {errors.pin && <p className="text-xs text-red-500 font-bold mt-1.5 flex items-center gap-1 font-mono">⚠️ {errors.pin}</p>}
+                    <p className="text-[10px] text-white/40 mt-2 leading-relaxed font-light">
+                      Crea una clave numérica de 4 dígitos para poder volver a acceder o modificar tus marcadores en el futuro.
+                    </p>
+                  </div>
+
+                  <button
+                    id="btn-go-to-predictions"
+                    disabled={isEditingLocked}
+                    onClick={handleNextStep}
+                    className="w-full bg-[#00FF00] hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed text-black font-black py-4 rounded-lg active:scale-[0.98] transition-colors flex items-center justify-center gap-3 mt-8 uppercase tracking-tighter text-sm cursor-pointer"
+                  >
+                    {isEditingLocked ? "Inscripciones Cerradas" : "Comenzar a Pronosticar"} {!isEditingLocked && <ArrowRight className="w-4.5 h-4.5 stroke-[2.5]" />}
+                  </button>
+                </>
+              )
             )}
           </div>
         </div>
@@ -682,8 +765,12 @@ export default function FormularioRegistro({
                 </div>
                 <div>
                   <h3 className="font-serif italic text-2xl text-white">Progreso del Pronóstico</h3>
-                  <p className="text-xs text-white/50 mt-1 font-mono">
-                    Has definido <span className="text-[#00FF00] font-black">{totalPredicted}</span> de <span className="font-bold text-white">72</span> partidos obligatorios.
+                  <p className="text-xs text-white/50 mt-1 font-mono leading-relaxed">
+                    Has definido <span className="text-[#00FF00] font-black">{totalPredicted}</span> de <span className="font-bold text-white">{MATCHES.length}</span> partidos totales.
+                    <span className="block text-white/30 mt-1 text-[11px] font-sans">
+                      {isGroupPhaseLocked ? "🔒 La Fase de Grupos está cerrada." : "🟢 La Fase de Grupos está abierta."}{" "}
+                      {isSecondPhaseLocked ? "🔒 La Segunda Fase está cerrada o bloqueada." : "🟢 Segunda Fase (16avos):"} <strong className="text-[#00FF00] font-mono">{totalEditablePredicted}/16</strong> completados.
+                    </span>
                   </p>
                 </div>
               </div>
@@ -722,62 +809,113 @@ export default function FormularioRegistro({
             </div>
           </div>
 
-          {/* Group Selector Menu Tab - Grid layout */}
-          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-5">
-            <span className="text-[10px] uppercase font-mono tracking-widest text-white/40 block mb-4 border-b border-white/10 pb-2">
-              Índice de Grupos de la Fase
-            </span>
-            <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-12 gap-2">
-              {groupsList.map((g, idx) => {
-                const groupMatches = MATCHES.filter((m) => m.group === `Grupo ${g}`);
-                const answeredInGroup = groupMatches.filter(
-                  (m) => predictions[m.id].homeScore !== "" && predictions[m.id].awayScore !== ""
-                ).length;
-                const isGroupCompleted = answeredInGroup === 6;
-
-                return (
-                  <button
-                    key={g}
-                    id={`btn-group-tab-${g}`}
-                    onClick={() => setActiveGroupIndex(idx)}
-                    className={`relative py-3 px-2 rounded-lg font-bold text-center flex flex-col justify-center items-center transition-all border cursor-pointer ${
-                      activeGroupIndex === idx
-                        ? "bg-[#00FF00] text-black border-transparent shadow-md"
-                        : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <span className="text-sm font-bold tracking-tight">G-{g}</span>
-                    <span className={`text-[10px] mt-0.5 font-mono ${
-                      activeGroupIndex === idx
-                        ? "text-black/60 font-bold"
-                        : isGroupCompleted
-                        ? "text-[#00FF00]"
-                        : answeredInGroup > 0
-                        ? "text-white/80"
-                        : "text-white/30"
-                    }`}>
-                      {answeredInGroup}/6
-                    </span>
-                    
-                    {isGroupCompleted && (
-                      <div className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${
-                        activeGroupIndex === idx ? "bg-black" : "bg-[#00FF00]"
-                      }`} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Phase Segmented Selector */}
+          <div className="flex bg-[#0A0A0A] border border-white/10 p-1.5 rounded-2xl gap-2 font-sans col-span-12">
+            <button
+              type="button"
+              id="btn-phase-grupos"
+              onClick={() => {
+                setActivePhase("grupos");
+                setActiveGroupIndex(0);
+              }}
+              className={`flex-1 py-3 px-4 rounded-xl font-bold font-serif text-sm italic transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                activePhase === "grupos"
+                  ? "bg-[#00FF00] text-black shadow-lg shadow-[#00FF00]/10"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <span>📁</span> Fase de Grupos (72)
+            </button>
+            <button
+              type="button"
+              id="btn-phase-16avos"
+              onClick={() => {
+                setActivePhase("16avos");
+              }}
+              className={`flex-1 py-3 px-4 rounded-xl font-bold font-serif text-sm italic transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                activePhase === "16avos"
+                  ? "bg-[#00FF00] text-black shadow-lg shadow-[#00FF00]/10"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <span>🏆</span> 16avos de Final (16)
+            </button>
           </div>
+
+          {/* Group Selector Menu Tab - Grid layout */}
+          {activePhase === "grupos" ? (
+            <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-5 col-span-12">
+              <span className="text-[10px] uppercase font-mono tracking-widest text-white/40 block mb-4 border-b border-white/10 pb-2">
+                Índice de Grupos de la Fase
+              </span>
+              <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-12 gap-2">
+                {groupsList.map((g, idx) => {
+                  const groupMatches = MATCHES.filter((m) => m.group === `Grupo ${g}`);
+                  const answeredInGroup = groupMatches.filter(
+                    (m) => predictions[m.id].homeScore !== "" && predictions[m.id].awayScore !== ""
+                  ).length;
+                  const isGroupCompleted = answeredInGroup === 6;
+
+                  return (
+                    <button
+                      key={g}
+                      id={`btn-group-tab-${g}`}
+                      type="button"
+                      onClick={() => setActiveGroupIndex(idx)}
+                      className={`relative py-3 px-2 rounded-lg font-bold text-center flex flex-col justify-center items-center transition-all border cursor-pointer ${
+                        activeGroupIndex === idx
+                          ? "bg-[#00FF00] text-black border-transparent shadow-md"
+                          : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span className="text-sm font-bold tracking-tight">G-{g}</span>
+                      <span className={`text-[10px] mt-0.5 font-mono ${
+                        activeGroupIndex === idx
+                          ? "text-black/60 font-bold"
+                          : isGroupCompleted
+                          ? "text-[#00FF00]"
+                          : answeredInGroup > 0
+                          ? "text-white/80"
+                          : "text-white/30"
+                      }`}>
+                        {answeredInGroup}/6
+                      </span>
+                      
+                      {isGroupCompleted && (
+                        <div className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${
+                          activeGroupIndex === idx ? "bg-black" : "bg-[#00FF00]"
+                        }`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-[#0A0A0A] border border-[#00FF00]/15 rounded-2xl p-5 sm:p-6 text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4 animate-fade-in font-sans col-span-12">
+              <div>
+                <span className="text-[10px] uppercase font-mono tracking-widest text-[#00FF00] block mb-1">
+                  Segunda Fase Eliminatoria
+                </span>
+                <h4 className="text-lg font-serif font-black italic text-white">16avos de Final</h4>
+                <p className="text-xs text-white/50 leading-relaxed font-light mt-1">
+                  Pronostica el marcador de cada cruce de eliminación directa basado en las siembras oficiales.
+                </p>
+              </div>
+              <div className="px-4 py-2 bg-[#00FF00]/10 border border-[#00FF00]/25 rounded-xl text-[#00FF00] font-mono text-xs font-bold whitespace-nowrap">
+                {Object.values(predictions).filter((p: any, idx) => idx >= 72 && p.homeScore !== "" && p.awayScore !== "").length} / 16 Pronosticados
+              </div>
+            </div>
+          )}
 
           {/* Current Group Navigation */}
           <div className="flex items-center justify-between col-span-12 border border-white/10 p-4 rounded-xl bg-gradient-to-br from-white/[0.02] to-transparent">
             <button
               id="btn-prev-group-nav"
-              disabled={activeGroupIndex === 0}
-              onClick={() => setActiveGroupIndex((prev) => Math.max(0, prev - 1))}
+              disabled={activePhase === "grupos" && activeGroupIndex === 0}
+              onClick={handlePrevGroup}
               className={`p-2 rounded-lg transition-all border flex items-center justify-center cursor-pointer ${
-                activeGroupIndex === 0 
+                activePhase === "grupos" && activeGroupIndex === 0
                   ? "border-white/5 opacity-20 cursor-not-allowed text-white/30" 
                   : "border-white/10 hover:bg-white/5 text-white"
               }`}
@@ -791,11 +929,12 @@ export default function FormularioRegistro({
               <h2 className="text-2xl font-black tracking-tight italic font-serif text-white uppercase">{activeGroup}</h2>
             </div>
             <button
+              type="button"
               id="btn-next-group-nav"
-              disabled={activeGroupIndex === groupsList.length - 1}
-              onClick={() => setActiveGroupIndex((prev) => Math.min(groupsList.length - 1, prev + 1))}
+              disabled={activePhase === "16avos"}
+              onClick={handleNextGroup}
               className={`p-2 rounded-lg transition-all border flex items-center justify-center cursor-pointer ${
-                activeGroupIndex === groupsList.length - 1 
+                activePhase === "16avos"
                   ? "border-white/5 opacity-20 cursor-not-allowed text-white/30" 
                   : "border-white/10 hover:bg-white/5 text-white"
               }`}
@@ -808,16 +947,24 @@ export default function FormularioRegistro({
           <div className="space-y-4">
             {filteredMatches.map((match) => {
               const pred = predictions[match.id];
+              const isLocked = isMatchLocked(match.id);
               return (
                 <div
                   key={match.id}
                   id={`match-row-${match.id}`}
-                  className="bg-[#0A0A0A] border border-white/10 rounded-xl p-4 sm:p-5 hover:border-white/20 transition-all focus-within:border-[#00FF00]/40"
+                  className={`bg-[#0A0A0A] border rounded-xl p-4 sm:p-5 hover:border-white/20 transition-all focus-within:border-[#00FF00]/40 ${
+                    isLocked ? "border-white/5 opacity-70 bg-gradient-to-b from-[#080808] to-[#040404]" : "border-white/10"
+                  }`}
                 >
                   {/* Top compact indicator bar */}
                   <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3.5">
-                    <span className="text-xs font-mono font-bold text-white/40">
+                    <span className="text-xs font-mono font-bold text-white/40 flex items-center gap-1.5 flex-wrap">
                       PARTIDO #{String(match.id).padStart(2, "0")}
+                      {isLocked && (
+                        <span className="text-[9px] text-[#FF4444] font-sans font-bold flex items-center gap-1 bg-[#FF4444]/10 border border-[#FF4444]/20 px-2 py-0.5 rounded-full select-none uppercase tracking-wider">
+                          <Lock className="w-2.5 h-2.5" /> Cerrado
+                        </span>
+                      )}
                     </span>
                     <span className="text-[9px] uppercase font-mono font-extrabold text-[#00FF00] bg-[#00FF00]/10 border border-[#00FF00]/20 px-2.5 py-0.5 rounded-full">
                       {match.group}
@@ -849,7 +996,9 @@ export default function FormularioRegistro({
                     </div>
 
                     {/* Numeric Input block - Directly accessible via tapping with no clattery buttons */}
-                    <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 bg-[#121212]/50 p-1 sm:p-1.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors">
+                    <div className={`flex items-center gap-1.5 sm:gap-2.5 shrink-0 p-1 sm:p-1.5 rounded-lg border transition-colors ${
+                      isLocked ? "bg-white/[0.02] border-white/5" : "bg-[#121212]/50 border-white/10 hover:border-white/20"
+                    }`}>
                       <input
                         id={`input-home-score-${match.id}`}
                         type="text"
@@ -857,7 +1006,7 @@ export default function FormularioRegistro({
                         inputMode="numeric"
                         placeholder="-"
                         value={pred.homeScore}
-                        disabled={isReadOnlySession}
+                        disabled={isLocked}
                         onFocus={(e) => {
                           try {
                             e.target.select();
@@ -874,7 +1023,7 @@ export default function FormularioRegistro({
                             }
                           }
                         }}
-                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isReadOnlySession ? "opacity-55 cursor-not-allowed" : ""}`}
+                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isLocked ? "opacity-55 cursor-not-allowed bg-[#0F0F0F] border-transparent" : ""}`}
                       />
 
                       <span className="text-white/25 text-[10px] sm:text-xs font-mono font-bold select-none uppercase px-0.5">vs</span>
@@ -886,7 +1035,7 @@ export default function FormularioRegistro({
                         inputMode="numeric"
                         placeholder="-"
                         value={pred.awayScore}
-                        disabled={isReadOnlySession}
+                        disabled={isLocked}
                         onFocus={(e) => {
                           try {
                             e.target.select();
@@ -903,7 +1052,7 @@ export default function FormularioRegistro({
                             }
                           }
                         }}
-                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isReadOnlySession ? "opacity-55 cursor-not-allowed" : ""}`}
+                        className={`w-10 h-10 sm:w-14 sm:h-11 text-center font-bold font-mono text-white bg-[#1A1A1A] border border-white/10 focus:border-[#00FF00] focus:ring-2 focus:ring-[#00FF00]/10 rounded focus:outline-none placeholder-white/20 text-base sm:text-lg transition-all ${isLocked ? "opacity-55 cursor-not-allowed bg-[#0F0F0F] border-transparent" : ""}`}
                       />
                     </div>
 
@@ -939,13 +1088,13 @@ export default function FormularioRegistro({
             <div className="flex items-center gap-2">
               <button
                 id="btn-nav-prev-group-foot"
-                disabled={activeGroupIndex === 0}
+                disabled={activePhase === "grupos" && activeGroupIndex === 0}
                 onClick={() => {
-                  setActiveGroupIndex((prev) => Math.max(0, prev - 1));
+                  handlePrevGroup();
                   window.scrollTo({ top: 120, behavior: "smooth" });
                 }}
                 className={`px-4 py-2.5 bg-[#0A0A0A] border rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs uppercase tracking-tighter ${
-                  activeGroupIndex === 0 
+                  activePhase === "grupos" && activeGroupIndex === 0 
                     ? "border-white/5 text-white/30 opacity-40 cursor-not-allowed" 
                     : "border-white/10 text-white hover:bg-white/5"
                 }`}
@@ -955,13 +1104,13 @@ export default function FormularioRegistro({
 
               <button
                 id="btn-nav-next-group-foot"
-                disabled={activeGroupIndex === groupsList.length - 1}
+                disabled={activePhase === "16avos"}
                 onClick={() => {
-                  setActiveGroupIndex((prev) => Math.min(groupsList.length - 1, prev + 1));
+                  handleNextGroup();
                   window.scrollTo({ top: 120, behavior: "smooth" });
                 }}
                 className={`px-4 py-2.5 bg-[#0A0A0A] border rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs uppercase tracking-tighter ${
-                  activeGroupIndex === groupsList.length - 1 
+                  activePhase === "16avos" 
                     ? "border-white/5 text-white/30 opacity-40 cursor-not-allowed" 
                     : "border-white/10 text-white hover:bg-white/5"
                 }`}
@@ -1029,9 +1178,11 @@ export default function FormularioRegistro({
               <button
                 type="button"
                 onClick={() => {
-                  const reset: any = {};
+                  const reset: any = { ...predictions };
                   MATCHES.forEach((m) => {
-                    reset[m.id] = { homeScore: "", awayScore: "" };
+                    if (!isMatchLocked(m.id)) {
+                      reset[m.id] = { homeScore: "", awayScore: "" };
+                    }
                   });
                   setPredictions(reset);
                   setShowClearConfirm(false);
@@ -1054,7 +1205,7 @@ export default function FormularioRegistro({
             </div>
             <h3 className="text-xl font-bold font-serif italic text-white text-center">¡Pronóstico Incompleto!</h3>
             <p className="text-xs text-white/50 text-center leading-relaxed max-w-xs mx-auto">
-              Has pronosticado <span className="text-[#00FF00] font-bold">{totalPredicted}</span> de <span className="text-white font-bold">72</span> partidos obligatorios. ¿Deseas certificar y registrar tu quiniela con los marcadores restantes en blanco (se guardarán como 0-0)?
+              Has pronosticado <span className="text-[#00FF00] font-bold">{totalEditablePredicted}</span> de <span className="text-white font-bold">16</span> partidos de la Segunda Fase (16avos de Final). ¿Deseas certificar y registrar tu quiniela con los marcadores restantes de la Segunda Fase en blanco (se guardarán como 0-0)?
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button

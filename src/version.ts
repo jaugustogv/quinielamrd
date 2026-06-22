@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.7.2";
-export const VERSION_DATE = "10 de Junio, 2026";
+export const APP_VERSION = "2.10.0";
+export const VERSION_DATE = "22 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,34 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.10.0",
+    date: "22 Junio 2026",
+    title: "Bloqueo y Apertura Independiente de Fases de Juego",
+    description: "Implementación en el Panel de Administración de botones interactivos de bloqueo seguro para habilitar o cerrar de forma independiente la Fase de Grupos (partidos 1-72) y la Segunda Fase/16avos de Final (partidos 73-88). Los formularios, limpiadores y algoritmos de autocompletado respetan y se adaptan a estas reglas automáticamente en tiempo real.",
+    type: "minor"
+  },
+  {
+    version: "2.9.1",
+    date: "22 Junio 2026",
+    title: "Bloqueo de Nuevos Registros en Panel de Control",
+    description: "Incorporación de un control en el Panel de Administración para bloquear exclusivamente la creación de nuevos participantes en el sistema, mientras los usuarios previamente registrados conservan la posibilidad de acceder de manera segura con su correo + PIN y actualizar sus pronósticos pendientes para los 16avos de Final.",
+    type: "patch"
+  },
+  {
+    version: "2.9.0",
+    date: "22 Junio 2026",
+    title: "Bloqueo de Primera Fase (Fase de Grupos) y Solo Edición de 16avos de Final",
+    description: "Cierre definitivo y de carácter general para la edición de pronósticos de la Primera Fase (Fase de Grupos, partidos 1 al 72). Ahora se habilitan y permiten de manera exclusiva los aportes/modificaciones de pronósticos para la Segunda Fase (16avos de Final, partidos 73 al 88) para todos los usuarios, con retroalimentación visual de bloqueos y candados en tiempo real.",
+    type: "minor"
+  },
+  {
+    version: "2.8.0",
+    date: "11 Junio 2026",
+    title: "Módulo de Segunda Fase (16avos de Final) y Ampliación de Quinielas",
+    description: "Ampliación de la plataforma de quinielas a 88 partidos oficiales incorporando la segunda fase clasificatoria (16avos de Final) del Mundial con el orden estricto de siembras definido por el usuario. Implementación de una interfaz fluida con controles segmentados para navegar entre la Fase de Grupos y los 16avos de Final.",
+    type: "minor"
+  },
   {
     version: "2.7.2",
     date: "10 Junio 2026",

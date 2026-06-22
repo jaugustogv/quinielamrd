@@ -122,7 +122,7 @@ export default function ResumenRecibo({ submission, onClose }: ResumenReciboProp
           <div>
             <span className="text-white/40 text-[10px] font-mono uppercase tracking-widest block">Eventos Pronosticados</span>
             <p className="text-base font-bold text-white mt-1 flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 text-[#00FF00]" /> {submission.totalMatchesPredicted} / 72 Partidos
+              <Trophy className="w-4 h-4 text-[#00FF00]" /> {submission.totalMatchesPredicted} / {MATCHES.length} Partidos
             </p>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function ResumenRecibo({ submission, onClose }: ResumenReciboProp
                 <span className="text-[#00FF00]">📊</span> Formato Excel / Google Sheets
               </p>
               <p className="text-[11px] text-white/50 leading-relaxed max-w-lg">
-                Copia los 72 marcadores en columnas tabuladas. Al pegarlos en Excel o Google Sheets, se acomodarán perfectamente en celdas separadas (ID - Grupo - Local - Goles Local - Goles Visitante - Visitante) para ahorrar tiempo al organizar tu quiniela.
+                Copia los marcadores en columnas tabuladas. Al pegarlos en Excel o Google Sheets, se acomodarán perfectamente en celdas separadas (ID - Grupo - Local - Goles Local - Goles Visitante - Visitante) para ahorrar tiempo al organizar tu quiniela.
               </p>
             </div>
             
