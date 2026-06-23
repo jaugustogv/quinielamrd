@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.15.0";
+export const APP_VERSION = "2.15.3";
 export const VERSION_DATE = "23 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,27 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.15.3",
+    date: "23 Junio 2026",
+    title: "Corrección de Error de Ciclo de React Hooks en Modal de Alias",
+    description: "Se corrigió un error de violación de ciclo de React Hooks (llamado condicional de React.useMemo dentro del render JSX), el cual causaba un crash del renderizador del navegador y pantalla en negro al intentar abrir el editor de equipos de 16avos de Final.",
+    type: "patch"
+  },
+  {
+    version: "2.15.2",
+    date: "23 Junio 2026",
+    title: "Soporte Multiplataforma para Edición de Alias",
+    description: "Se simplificó la lógica interna de ordenamiento numérico al interior del modal de definición de equipos, mitigando el uso de localeCompare parametrizado avanzado con el objeto de blindarlo contra RangeError típicos de navegadores antiguos, empotrados o sandboxed en iframes.",
+    type: "patch"
+  },
+  {
+    version: "2.15.1",
+    date: "23 Junio 2026",
+    title: "Corrección en Generación de Lista de Alias de Torneo",
+    description: "Se corrige un bug crítico en la renderización del modal de alias donde la lista de comodines quedaba vacía (apareciendo en negro) una vez ingresados los primeros nombres. Al mapear sobre la estructura de torneo estática en vez de los partidos dinámicamente resueltos, las opciones de edición para todas las fases permanecen siempre visibles y editables.",
+    type: "patch"
+  },
   {
     version: "2.15.0",
     date: "23 Junio 2026",

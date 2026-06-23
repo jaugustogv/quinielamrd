@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Users, 
   Search, 
@@ -134,6 +134,84 @@ export default function ListaParticipantes({
   const [isSavingOverrides, setIsSavingOverrides] = useState(false);
   const [overridesActiveTab, setOverridesActiveTab] = useState<"16avos" | "octavos" | "cuartos" | "semis" | "tercer-puesto" | "final">("16avos");
 
+  const overridesList = useMemo(() => {
+    let list: string[] = [];
+    if (overridesActiveTab === "16avos") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id >= 73 && m.id <= 88)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string" && /^[1-3]/.test(name))
+      )).sort((a, b) => {
+        const numA = parseInt(a, 10) || 0;
+        const numB = parseInt(b, 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    } else if (overridesActiveTab === "octavos") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id >= 89 && m.id <= 96)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string")
+      )).sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    } else if (overridesActiveTab === "cuartos") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id >= 97 && m.id <= 100)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string")
+      )).sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    } else if (overridesActiveTab === "semis") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id >= 101 && m.id <= 102)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string")
+      )).sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    } else if (overridesActiveTab === "tercer-puesto") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id === 103)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string")
+      )).sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    } else if (overridesActiveTab === "final") {
+      list = Array.from(new Set(
+        MATCHES
+          .filter(m => m.id === 104)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => typeof name === "string")
+      )).sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return a.localeCompare(b);
+      });
+    }
+    return list;
+  }, [overridesActiveTab]);
+
   // States for Database Excel Restore Utility
   const [restoringSubmissions, setRestoringSubmissions] = useState<any[]>([]);
   const [isParsingExcel, setIsParsingExcel] = useState(false);
@@ -210,21 +288,21 @@ export default function ListaParticipantes({
     let wildcards: string[] = [];
     if (phase === "16avos") {
       wildcards = Array.from(new Set(
-        activeMatches
+        MATCHES
           .filter(m => m.id >= 73 && m.id <= 88)
           .flatMap(m => [m.homeTeam, m.awayTeam])
           .filter(name => /^[1-3]/.test(name))
       ));
     } else if (phase === "octavos") {
-      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 89 && m.id <= 96).flatMap(m => [m.homeTeam, m.awayTeam])));
+      wildcards = Array.from(new Set(MATCHES.filter(m => m.id >= 89 && m.id <= 96).flatMap(m => [m.homeTeam, m.awayTeam])));
     } else if (phase === "cuartos") {
-      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 97 && m.id <= 100).flatMap(m => [m.homeTeam, m.awayTeam])));
+      wildcards = Array.from(new Set(MATCHES.filter(m => m.id >= 97 && m.id <= 100).flatMap(m => [m.homeTeam, m.awayTeam])));
     } else if (phase === "semis") {
-      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 101 && m.id <= 102).flatMap(m => [m.homeTeam, m.awayTeam])));
+      wildcards = Array.from(new Set(MATCHES.filter(m => m.id >= 101 && m.id <= 102).flatMap(m => [m.homeTeam, m.awayTeam])));
     } else if (phase === "tercer-puesto") {
-      wildcards = Array.from(new Set(activeMatches.filter(m => m.id === 103).flatMap(m => [m.homeTeam, m.awayTeam])));
+      wildcards = Array.from(new Set(MATCHES.filter(m => m.id === 103).flatMap(m => [m.homeTeam, m.awayTeam])));
     } else if (phase === "final") {
-      wildcards = Array.from(new Set(activeMatches.filter(m => m.id === 104).flatMap(m => [m.homeTeam, m.awayTeam])));
+      wildcards = Array.from(new Set(MATCHES.filter(m => m.id === 104).flatMap(m => [m.homeTeam, m.awayTeam])));
     }
     
     return wildcards.filter(w => !!teamOverrides[w]).length;
@@ -1668,68 +1746,7 @@ export default function ListaParticipantes({
             </div>
 
             <div className="max-h-[300px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 pr-1">
-              {React.useMemo(() => {
-                let list: string[] = [];
-                if (overridesActiveTab === "16avos") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id >= 73 && m.id <= 88)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                      .filter(name => /^[1-3]/.test(name))
-                  )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-                } else if (overridesActiveTab === "octavos") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id >= 89 && m.id <= 96)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                  )).sort((a, b) => {
-                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-                    return numA - numB;
-                  });
-                } else if (overridesActiveTab === "cuartos") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id >= 97 && m.id <= 100)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                  )).sort((a, b) => {
-                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-                    return numA - numB;
-                  });
-                } else if (overridesActiveTab === "semis") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id >= 101 && m.id <= 102)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                  )).sort((a, b) => {
-                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-                    return numA - numB;
-                  });
-                } else if (overridesActiveTab === "tercer-puesto") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id === 103)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                  )).sort((a, b) => {
-                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-                    return numA - numB;
-                  });
-                } else if (overridesActiveTab === "final") {
-                  list = Array.from(new Set(
-                    activeMatches
-                      .filter(m => m.id === 104)
-                      .flatMap(m => [m.homeTeam, m.awayTeam])
-                  )).sort((a, b) => {
-                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
-                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
-                    return numA - numB;
-                  });
-                }
-                return list;
-              }, [activeMatches, overridesActiveTab]).map((wildcard) => (
+              {overridesList.map((wildcard) => (
                 <div key={wildcard} className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-center justify-between gap-3">
                   <div className="shrink-0">
                     <span className="text-xs font-mono font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
