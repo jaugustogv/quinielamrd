@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.12.0";
-export const VERSION_DATE = "22 de Junio, 2026";
+export const APP_VERSION = "2.15.0";
+export const VERSION_DATE = "23 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,27 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.15.0",
+    date: "23 Junio 2026",
+    title: "Administración Completa de Alias para Todas las Fases Eliminatorias",
+    description: "Se expande la utilidad de alias de equipos para abarcar la totalidad de las fases finales. El panel 'Fases' del administrador ahora contiene selectores interactivos independientes para asignar nombres reales a clasificados y comodines de 16avos de Final, Octavos de Final, Cuartos de Final, Semifinales, Tercer Puesto, y la Gran Final.",
+    type: "minor"
+  },
+  {
+    version: "2.14.0",
+    date: "23 Junio 2026",
+    title: "Reorganización de Panel de Control y Remoción de Datos de Prueba",
+    description: "Reestructuración integral del panel de control de administrador en base a secciones y componentes agrupados de forma lógica (Datos, Accesos, Fases, Alias). Adicionalmente, se removió la opción redundante de generar 5 participantes falsos a fin de resguardar la consistencia física de la base de datos de producción.",
+    type: "minor"
+  },
+  {
+    version: "2.13.0",
+    date: "23 Junio 2026",
+    title: "Alineación de Interfaz y Retiro de Badge Fase 1",
+    description: "Se remueve el cuadro indicador redundante de 'Fase 1' debajo del título principal en el encabezado para mantener una interfaz limpia y libre de elementos inactivos.",
+    type: "patch"
+  },
   {
     version: "2.12.0",
     date: "22 Junio 2026",

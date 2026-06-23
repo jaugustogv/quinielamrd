@@ -26,28 +26,31 @@ import { getTeamFlag, getTeamFlagUrl, generateWhatsAppMessage, generateCompactSu
 interface ResumenReciboProps {
   submission: QuinielaSubmission;
   onClose: () => void;
+  matches?: typeof MATCHES;
 }
 
-export default function ResumenRecibo({ submission, onClose }: ResumenReciboProps) {
+export default function ResumenRecibo({ submission, onClose, matches }: ResumenReciboProps) {
   const [copied, setCopied] = useState(false);
   const [copiedExcel, setCopiedExcel] = useState(false);
   const [showFullReview, setShowFullReview] = useState(false);
+
+  const activeMatches = matches || MATCHES;
 
   const whatsappUrl = `https://wa.me/?text=${generateWhatsAppMessage(
     submission.participant.name,
     submission.participant.email,
     submission.predictions,
-    MATCHES
+    activeMatches
   )}`;
 
   const emailSubject = encodeURIComponent(`Mis Pronísticos - Quiniela Mundial 2026 - ${submission.participant.name}`);
   const emailBody = encodeURIComponent(
-    generateCompactSummaryText(submission.participant.name, submission.participant.email, submission.predictions, MATCHES)
+    generateCompactSummaryText(submission.participant.name, submission.participant.email, submission.predictions, activeMatches)
   );
   const emailUrl = `mailto:${submission.participant.email}?subject=${emailSubject}&body=${emailBody}`;
 
   const handleCopyToClipboard = () => {
-    const rawText = generateCompactSummaryText(submission.participant.name, submission.participant.email, submission.predictions, MATCHES);
+    const rawText = generateCompactSummaryText(submission.participant.name, submission.participant.email, submission.predictions, activeMatches);
     navigator.clipboard.writeText(rawText)
       .then(() => {
         setCopied(true);
@@ -59,7 +62,7 @@ export default function ResumenRecibo({ submission, onClose }: ResumenReciboProp
   };
 
   const handleCopyExcelToClipboard = () => {
-    const rawText = generateSpreadsheetPasteableText(submission.predictions, MATCHES);
+    const rawText = generateSpreadsheetPasteableText(submission.predictions, activeMatches);
     navigator.clipboard.writeText(rawText)
       .then(() => {
         setCopiedExcel(true);
@@ -122,7 +125,7 @@ export default function ResumenRecibo({ submission, onClose }: ResumenReciboProp
           <div>
             <span className="text-white/40 text-[10px] font-mono uppercase tracking-widest block">Eventos Pronosticados</span>
             <p className="text-base font-bold text-white mt-1 flex items-center gap-1.5">
-              <Trophy className="w-4 h-4 text-[#00FF00]" /> {submission.totalMatchesPredicted} / {MATCHES.length} Partidos
+              <Trophy className="w-4 h-4 text-[#00FF00]" /> {submission.totalMatchesPredicted} / {activeMatches.length} Partidos
             </p>
           </div>
         </div>
@@ -234,7 +237,7 @@ export default function ResumenRecibo({ submission, onClose }: ResumenReciboProp
 
         {showFullReview && (
           <div className="p-5 max-h-[380px] overflow-y-auto divide-y divide-white/5 font-mono text-xs text-white/80">
-            {MATCHES.map((m) => {
+            {activeMatches.map((m) => {
               const pred = submission.predictions[m.id];
               const hScore = pred !== undefined ? pred.homeScore : "-";
               const aScore = pred !== undefined ? pred.awayScore : "-";

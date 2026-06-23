@@ -41,6 +41,12 @@ interface FormularioRegistroProps {
   isRegistrationLocked?: boolean;
   isGroupPhaseLocked?: boolean;
   isSecondPhaseLocked?: boolean;
+  isThirdPhaseLocked?: boolean;
+  isFourthPhaseLocked?: boolean;
+  isFifthPhaseLocked?: boolean;
+  isSixthPhaseLocked?: boolean;
+  isSeventhPhaseLocked?: boolean;
+  matches?: typeof MATCHES;
 }
 
 export default function FormularioRegistro({ 
@@ -52,8 +58,16 @@ export default function FormularioRegistro({
   isEditingLocked = false,
   isRegistrationLocked = false,
   isGroupPhaseLocked = true,
-  isSecondPhaseLocked = false
+  isSecondPhaseLocked = false,
+  isThirdPhaseLocked = false,
+  isFourthPhaseLocked = false,
+  isFifthPhaseLocked = false,
+  isSixthPhaseLocked = false,
+  isSeventhPhaseLocked = false,
+  matches
 }: FormularioRegistroProps) {
+  const activeMatches = matches || MATCHES;
+
   // Step 1: Info, Step 2: Predictions
   const [step, setStep] = useState<1 | 2>(1);
   const isReadOnlySession = isEditingLocked;
@@ -61,7 +75,13 @@ export default function FormularioRegistro({
   const isMatchLocked = (matchId: number): boolean => {
     if (isReadOnlySession) return true;
     if (matchId <= 72) return isGroupPhaseLocked;
-    return isSecondPhaseLocked;
+    if (matchId >= 73 && matchId <= 88) return isSecondPhaseLocked;
+    if (matchId >= 89 && matchId <= 96) return isThirdPhaseLocked;
+    if (matchId >= 97 && matchId <= 100) return isFourthPhaseLocked;
+    if (matchId >= 101 && matchId <= 102) return isFifthPhaseLocked;
+    if (matchId === 103) return isSixthPhaseLocked;
+    if (matchId === 104) return isSeventhPhaseLocked;
+    return false;
   };
 
   
@@ -92,20 +112,35 @@ export default function FormularioRegistro({
     ) || null;
   }, [email, submissions]);
 
-  // Active Phase and Group filtering (Groups A to L and 16avos de Final)
-  const [activePhase, setActivePhase] = useState<"grupos" | "16avos">("grupos");
+  // Active Phase and Group filtering (Groups A to L and final rounds)
+  type Phase = "grupos" | "16avos" | "octavos" | "cuartos" | "semifinales" | "tercer-puesto" | "final";
+  const PHASES_ORDER: Phase[] = ["grupos", "16avos", "octavos", "cuartos", "semifinales", "tercer-puesto", "final"];
+
+  const [activePhase, setActivePhase] = useState<Phase>("grupos");
   const groupsList = useMemo(() => ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"], []);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const activeGroup = useMemo(() => {
-    return activePhase === "grupos" ? `Grupo ${groupsList[activeGroupIndex]}` : "16avos de Final";
+    if (activePhase === "grupos") return `Grupo ${groupsList[activeGroupIndex]}`;
+    if (activePhase === "16avos") return "16avos de Final";
+    if (activePhase === "octavos") return "Octavos de Final";
+    if (activePhase === "cuartos") return "Cuartos de Final";
+    if (activePhase === "semifinales") return "Semifinales";
+    if (activePhase === "tercer-puesto") return "Tercer Puesto";
+    if (activePhase === "final") return "Final";
+    return "";
   }, [activePhase, groupsList, activeGroupIndex]);
 
   const handlePrevGroup = () => {
-    if (activePhase === "16avos") {
-      setActivePhase("grupos");
-      setActiveGroupIndex(groupsList.length - 1);
-    } else {
+    if (activePhase === "grupos") {
       setActiveGroupIndex((prev) => Math.max(0, prev - 1));
+    } else {
+      const currIdx = PHASES_ORDER.indexOf(activePhase);
+      if (currIdx === 1) { // from 16avos to last group
+        setActivePhase("grupos");
+        setActiveGroupIndex(groupsList.length - 1);
+      } else if (currIdx > 1) {
+        setActivePhase(PHASES_ORDER[currIdx - 1]);
+      }
     }
   };
 
@@ -116,6 +151,11 @@ export default function FormularioRegistro({
       } else {
         setActiveGroupIndex((prev) => prev + 1);
       }
+    } else {
+      const currIdx = PHASES_ORDER.indexOf(activePhase);
+      if (currIdx < PHASES_ORDER.length - 1) {
+        setActivePhase(PHASES_ORDER[currIdx + 1]);
+      }
     }
   };
 
@@ -124,7 +164,7 @@ export default function FormularioRegistro({
     [matchId: number]: { homeScore: number | ""; awayScore: number | "" };
   }>(() => {
     const initial: { [key: number]: { homeScore: ""; awayScore: "" } } = {};
-    MATCHES.forEach((m) => {
+    activeMatches.forEach((m) => {
       initial[m.id] = { homeScore: "", awayScore: "" };
     });
     return initial;
@@ -149,7 +189,7 @@ export default function FormularioRegistro({
         setStep(2); // Jump to predictions directly
         
         const loadedPredictions: any = {};
-        MATCHES.forEach((m) => {
+        activeMatches.forEach((m) => {
           const pred = found.predictions[m.id];
           loadedPredictions[m.id] = {
             homeScore: pred && typeof pred.homeScore === "number" ? pred.homeScore : "",
@@ -170,7 +210,7 @@ export default function FormularioRegistro({
         onClearInitialEmail();
       }
     }
-  }, [initialEmail, submissions, onClearInitialEmail]);
+  }, [initialEmail, submissions, onClearInitialEmail, activeMatches]);
 
   // Calculate stats
   const totalPredicted = useMemo(() => {
@@ -179,18 +219,84 @@ export default function FormularioRegistro({
     ).length;
   }, [predictions]);
 
-  const totalEditablePredicted = useMemo(() => {
-    return Object.entries(predictions).filter(
-      ([id, p]: [string, any]) => Number(id) >= 73 && p.homeScore !== "" && p.awayScore !== ""
-    ).length;
-  }, [predictions]);
+  const { totalUnlocked, totalPredictedUnlocked } = useMemo(() => {
+    let unlocked = 0;
+    let predUnlocked = 0;
+    activeMatches.forEach((m) => {
+      const isLocked = isMatchLocked(m.id);
+      if (!isLocked) {
+        unlocked++;
+        const p = predictions[m.id];
+        if (p && p.homeScore !== "" && p.awayScore !== "") {
+          predUnlocked++;
+        }
+      }
+    });
+    return { totalUnlocked: unlocked, totalPredictedUnlocked: predUnlocked };
+  }, [activeMatches, predictions, isGroupPhaseLocked, isSecondPhaseLocked, isThirdPhaseLocked, isFourthPhaseLocked, isFifthPhaseLocked, isSixthPhaseLocked, isSeventhPhaseLocked, isReadOnlySession]);
 
-  const progressPercentage = Math.round((totalPredicted / MATCHES.length) * 100);
+  const totalEditablePredicted = totalPredictedUnlocked;
+
+  const progressPercentage = Math.round((totalPredicted / activeMatches.length) * 100);
 
   // Grouped matches helper
   const filteredMatches = useMemo(() => {
-    return MATCHES.filter((m) => m.group === activeGroup);
-  }, [activeGroup]);
+    return activeMatches.filter((m) => m.group === activeGroup);
+  }, [activeGroup, activeMatches]);
+
+  const phaseMetadata = useMemo(() => {
+    switch (activePhase) {
+      case "16avos":
+        return {
+          title: "16avos de Final",
+          subtitle: "Segunda Fase Eliminatoria",
+          total: 16,
+          filterFn: (id: number) => id >= 73 && id <= 88
+        };
+      case "octavos":
+        return {
+          title: "Octavos de Final",
+          subtitle: "Tercera Fase Eliminatoria",
+          total: 8,
+          filterFn: (id: number) => id >= 89 && id <= 96
+        };
+      case "cuartos":
+        return {
+          title: "Cuartos de Final",
+          subtitle: "Cuarta Fase Eliminatoria",
+          total: 4,
+          filterFn: (id: number) => id >= 97 && id <= 100
+        };
+      case "semifinales":
+        return {
+          title: "Semifinales",
+          subtitle: "Quinta Fase Eliminatoria",
+          total: 2,
+          filterFn: (id: number) => id >= 101 && id <= 102
+        };
+      case "tercer-puesto":
+        return {
+          title: "Tercer Puesto",
+          subtitle: "Partido de Consolación (3° Puesto)",
+          total: 1,
+          filterFn: (id: number) => id === 103
+        };
+      case "final":
+        return {
+          title: "Gran Final",
+          subtitle: "Partido de Campeonato de la Copa",
+          total: 1,
+          filterFn: (id: number) => id === 104
+        };
+      default:
+        return {
+          title: "",
+          subtitle: "",
+          total: 0,
+          filterFn: () => false
+        };
+    }
+  }, [activePhase]);
 
   // Validation for Step 1
   const validateStep1 = () => {
@@ -257,7 +363,7 @@ export default function FormularioRegistro({
         setEditingSubmittedAt(foundExistingSubmission.submittedAt);
         
         const loadedPredictions: any = {};
-        MATCHES.forEach((m) => {
+        activeMatches.forEach((m) => {
           const pred = foundExistingSubmission.predictions[m.id];
           loadedPredictions[m.id] = {
             homeScore: pred && typeof pred.homeScore === "number" ? pred.homeScore : "",
@@ -317,7 +423,7 @@ export default function FormularioRegistro({
       { h: 1, a: 2 }, { h: 2, a: 2 }, { h: 3, a: 0 }, { h: 1, a: 3 }
     ];
     const filled: any = { ...predictions };
-    MATCHES.forEach((m) => {
+    activeMatches.forEach((m) => {
       if (!isMatchLocked(m.id) && (filled[m.id].homeScore === "" || filled[m.id].awayScore === "")) {
         const pick = randomScores[Math.floor(Math.random() * randomScores.length)];
         filled[m.id] = { homeScore: pick.h, awayScore: pick.a };
@@ -329,7 +435,7 @@ export default function FormularioRegistro({
   const executeSubmit = () => {
     // Format predictions safely, preserving empty predictions so we don't overwrite them with 0s
     const formattedPredictions: { [matchId: number]: { homeScore: number | ""; awayScore: number | "" } } = {};
-    MATCHES.forEach((m) => {
+    activeMatches.forEach((m) => {
       const pred = predictions[m.id];
       formattedPredictions[m.id] = {
         homeScore: pred.homeScore === "" ? "" : Number(pred.homeScore),
@@ -376,7 +482,7 @@ export default function FormularioRegistro({
       return;
     }
 
-    if (!isSecondPhaseLocked && totalEditablePredicted < 16) {
+    if (totalPredictedUnlocked < totalUnlocked) {
       setShowIncompleteConfirm(true);
     } else {
       executeSubmit();
@@ -599,7 +705,7 @@ export default function FormularioRegistro({
                       
                       // Map predictions
                       const loadedPredictions: any = {};
-                      MATCHES.forEach((m) => {
+                      activeMatches.forEach((m) => {
                         const pred = foundExistingSubmission.predictions[m.id];
                         loadedPredictions[m.id] = {
                           homeScore: pred ? (pred.homeScore === null || pred.homeScore === "" ? "" : Number(pred.homeScore)) : "",
@@ -766,10 +872,9 @@ export default function FormularioRegistro({
                 <div>
                   <h3 className="font-serif italic text-2xl text-white">Progreso del Pronóstico</h3>
                   <p className="text-xs text-white/50 mt-1 font-mono leading-relaxed">
-                    Has definido <span className="text-[#00FF00] font-black">{totalPredicted}</span> de <span className="font-bold text-white">{MATCHES.length}</span> partidos totales.
+                    Has definido <span className="text-[#00FF00] font-black">{totalPredicted}</span> de <span className="font-bold text-white">{activeMatches.length}</span> partidos totales.
                     <span className="block text-white/30 mt-1 text-[11px] font-sans">
-                      {isGroupPhaseLocked ? "🔒 La Fase de Grupos está cerrada." : "🟢 La Fase de Grupos está abierta."}{" "}
-                      {isSecondPhaseLocked ? "🔒 La Segunda Fase está cerrada o bloqueada." : "🟢 Segunda Fase (16avos):"} <strong className="text-[#00FF00] font-mono">{totalEditablePredicted}/16</strong> completados.
+                      {isGroupPhaseLocked ? "🔒 Grupos: Cerrados" : "🟢 Grupos: Abiertos"} • 🏆 Eliminatorias: <strong className="text-[#00FF00] font-mono">{Object.entries(predictions).filter(([id, p]: [string, any]) => Number(id) >= 73 && p.homeScore !== "" && p.awayScore !== "").length}/32</strong> completados.
                     </span>
                   </p>
                 </div>
@@ -810,47 +915,46 @@ export default function FormularioRegistro({
           </div>
 
           {/* Phase Segmented Selector */}
-          <div className="flex bg-[#0A0A0A] border border-white/10 p-1.5 rounded-2xl gap-2 font-sans col-span-12">
-            <button
-              type="button"
-              id="btn-phase-grupos"
-              onClick={() => {
-                setActivePhase("grupos");
-                setActiveGroupIndex(0);
-              }}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold font-serif text-sm italic transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                activePhase === "grupos"
-                  ? "bg-[#00FF00] text-black shadow-lg shadow-[#00FF00]/10"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <span>📁</span> Fase de Grupos (72)
-            </button>
-            <button
-              type="button"
-              id="btn-phase-16avos"
-              onClick={() => {
-                setActivePhase("16avos");
-              }}
-              className={`flex-1 py-3 px-4 rounded-xl font-bold font-serif text-sm italic transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                activePhase === "16avos"
-                  ? "bg-[#00FF00] text-black shadow-lg shadow-[#00FF00]/10"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <span>🏆</span> 16avos de Final (16)
-            </button>
+          <div className="flex bg-[#0A0A0A] border border-white/10 p-1.5 rounded-2xl gap-2 font-sans col-span-12 overflow-x-auto whitespace-nowrap scrollbar-none">
+            {[
+              { id: "grupos" as Phase, label: "Grupos (72)", icon: "📁" },
+              { id: "16avos" as Phase, label: "16avos (16)", icon: "🏆" },
+              { id: "octavos" as Phase, label: "Octavos (8)", icon: "🎖️" },
+              { id: "cuartos" as Phase, label: "Cuartos (4)", icon: "🛡️" },
+              { id: "semifinales" as Phase, label: "Semis (2)", icon: "⚔️" },
+              { id: "tercer-puesto" as Phase, label: "3° Lugar (1)", icon: "🥉" },
+              { id: "final" as Phase, label: "Final (1)", icon: "👑" },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                id={`btn-phase-${p.id}`}
+                onClick={() => {
+                  setActivePhase(p.id);
+                  if (p.id === "grupos") {
+                    setActiveGroupIndex(0);
+                  }
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-xl font-bold font-serif text-xs italic transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 ${
+                  activePhase === p.id
+                    ? "bg-[#00FF00] text-black shadow-lg shadow-[#00FF00]/10"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <span>{p.icon}</span> {p.label}
+              </button>
+            ))}
           </div>
 
           {/* Group Selector Menu Tab - Grid layout */}
           {activePhase === "grupos" ? (
-            <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-5 col-span-12">
+            <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl p-5 col-span-12 font-sans">
               <span className="text-[10px] uppercase font-mono tracking-widest text-white/40 block mb-4 border-b border-white/10 pb-2">
                 Índice de Grupos de la Fase
               </span>
               <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-12 gap-2">
                 {groupsList.map((g, idx) => {
-                  const groupMatches = MATCHES.filter((m) => m.group === `Grupo ${g}`);
+                  const groupMatches = activeMatches.filter((m) => m.group === `Grupo ${g}`);
                   const answeredInGroup = groupMatches.filter(
                     (m) => predictions[m.id].homeScore !== "" && predictions[m.id].awayScore !== ""
                   ).length;
@@ -895,15 +999,15 @@ export default function FormularioRegistro({
             <div className="bg-[#0A0A0A] border border-[#00FF00]/15 rounded-2xl p-5 sm:p-6 text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-4 animate-fade-in font-sans col-span-12">
               <div>
                 <span className="text-[10px] uppercase font-mono tracking-widest text-[#00FF00] block mb-1">
-                  Segunda Fase Eliminatoria
+                  {phaseMetadata.subtitle}
                 </span>
-                <h4 className="text-lg font-serif font-black italic text-white">16avos de Final</h4>
+                <h4 className="text-lg font-serif font-black italic text-white">{phaseMetadata.title}</h4>
                 <p className="text-xs text-white/50 leading-relaxed font-light mt-1">
                   Pronostica el marcador de cada cruce de eliminación directa basado en las siembras oficiales.
                 </p>
               </div>
               <div className="px-4 py-2 bg-[#00FF00]/10 border border-[#00FF00]/25 rounded-xl text-[#00FF00] font-mono text-xs font-bold whitespace-nowrap">
-                {Object.values(predictions).filter((p: any, idx) => idx >= 72 && p.homeScore !== "" && p.awayScore !== "").length} / 16 Pronosticados
+                {Object.entries(predictions).filter(([id, p]: [string, any]) => phaseMetadata.filterFn(Number(id)) && p.homeScore !== "" && p.awayScore !== "").length} / {phaseMetadata.total} Pronosticados
               </div>
             </div>
           )}
@@ -931,10 +1035,10 @@ export default function FormularioRegistro({
             <button
               type="button"
               id="btn-next-group-nav"
-              disabled={activePhase === "16avos"}
+              disabled={activePhase === "final"}
               onClick={handleNextGroup}
               className={`p-2 rounded-lg transition-all border flex items-center justify-center cursor-pointer ${
-                activePhase === "16avos"
+                activePhase === "final"
                   ? "border-white/5 opacity-20 cursor-not-allowed text-white/30" 
                   : "border-white/10 hover:bg-white/5 text-white"
               }`}
@@ -1099,23 +1203,23 @@ export default function FormularioRegistro({
                     : "border-white/10 text-white hover:bg-white/5"
                 }`}
               >
-                <ChevronLeft className="w-4 h-4" /> Grupo Anterior
+                <ChevronLeft className="w-4 h-4" /> Atrás
               </button>
 
               <button
                 id="btn-nav-next-group-foot"
-                disabled={activePhase === "16avos"}
+                disabled={activePhase === "final"}
                 onClick={() => {
                   handleNextGroup();
                   window.scrollTo({ top: 120, behavior: "smooth" });
                 }}
                 className={`px-4 py-2.5 bg-[#0A0A0A] border rounded-lg font-bold transition-all flex items-center gap-2 cursor-pointer text-xs uppercase tracking-tighter ${
-                  activePhase === "16avos" 
+                  activePhase === "final" 
                     ? "border-white/5 text-white/30 opacity-40 cursor-not-allowed" 
                     : "border-white/10 text-white hover:bg-white/5"
                 }`}
               >
-                Siguiente Grupo <ChevronRight className="w-4 h-4" />
+                Siguiente <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
@@ -1179,7 +1283,7 @@ export default function FormularioRegistro({
                 type="button"
                 onClick={() => {
                   const reset: any = { ...predictions };
-                  MATCHES.forEach((m) => {
+                  activeMatches.forEach((m) => {
                     if (!isMatchLocked(m.id)) {
                       reset[m.id] = { homeScore: "", awayScore: "" };
                     }
@@ -1205,7 +1309,7 @@ export default function FormularioRegistro({
             </div>
             <h3 className="text-xl font-bold font-serif italic text-white text-center">¡Pronóstico Incompleto!</h3>
             <p className="text-xs text-white/50 text-center leading-relaxed max-w-xs mx-auto">
-              Has pronosticado <span className="text-[#00FF00] font-bold">{totalEditablePredicted}</span> de <span className="text-white font-bold">16</span> partidos de la Segunda Fase (16avos de Final). ¿Deseas certificar y registrar tu quiniela con los marcadores restantes de la Segunda Fase en blanco (se guardarán como 0-0)?
+              Has pronosticado <span className="text-[#00FF00] font-bold">{totalPredictedUnlocked}</span> de <span className="text-white font-bold">{totalUnlocked}</span> partidos habilitados actualmente de la quiniela. ¿Deseas certificar y registrar tu planilla con los marcadores restantes en blanco (se guardarán como 0-0)?
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button

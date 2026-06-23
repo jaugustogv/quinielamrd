@@ -31,11 +31,7 @@ export default function Header({ totalParticipants, onVersionClick }: HeaderProp
               <h1 className="text-4xl sm:text-5xl font-black tracking-tighter italic font-sans flex items-center">
                 Quinielas<span className="text-[#00FF00] font-black non-italic">MRD</span>
               </h1>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="bg-[#00FF00]/10 border border-[#00FF00]/20 text-[#00FF00] px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold tracking-wider align-middle">
-                  Fase 1
-                </span>
-              </div>
+              {/* Removed Fase 1 badge */}
             </div>
             
             <div className="flex items-center gap-3 mt-1.5 ml-0.5 flex-wrap">

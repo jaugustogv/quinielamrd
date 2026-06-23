@@ -22,7 +22,8 @@ import {
   Link,
   Check,
   FileSpreadsheet,
-  Upload
+  Upload,
+  Edit3
 } from "lucide-react";
 import { QuinielaSubmission } from "../types";
 import { getAdminPin, saveAdminPin, saveSubmission } from "../storage";
@@ -46,7 +47,20 @@ interface ListaParticipantesProps {
   onToggleGroupPhaseLock?: (locked: boolean) => Promise<void> | void;
   isSecondPhaseLocked?: boolean;
   onToggleSecondPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isThirdPhaseLocked?: boolean;
+  onToggleThirdPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isFourthPhaseLocked?: boolean;
+  onToggleFourthPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isFifthPhaseLocked?: boolean;
+  onToggleFifthPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isSixthPhaseLocked?: boolean;
+  onToggleSixthPhaseLock?: (locked: boolean) => Promise<void> | void;
+  isSeventhPhaseLocked?: boolean;
+  onToggleSeventhPhaseLock?: (locked: boolean) => Promise<void> | void;
   onRefreshSubmissions?: () => Promise<void> | void;
+  matches?: typeof MATCHES;
+  teamOverrides?: Record<string, string>;
+  onUpdateTeamOverrides?: (overrides: Record<string, string>) => Promise<void> | void;
 }
 
 function maskEmail(email: string): string {
@@ -87,8 +101,23 @@ export default function ListaParticipantes({
   onToggleGroupPhaseLock,
   isSecondPhaseLocked = false,
   onToggleSecondPhaseLock,
-  onRefreshSubmissions
+  isThirdPhaseLocked = false,
+  onToggleThirdPhaseLock,
+  isFourthPhaseLocked = false,
+  onToggleFourthPhaseLock,
+  isFifthPhaseLocked = false,
+  onToggleFifthPhaseLock,
+  isSixthPhaseLocked = false,
+  onToggleSixthPhaseLock,
+  isSeventhPhaseLocked = false,
+  onToggleSeventhPhaseLock,
+  onRefreshSubmissions,
+  matches,
+  teamOverrides = {},
+  onUpdateTeamOverrides
 }: ListaParticipantesProps) {
+  const activeMatches = matches || MATCHES;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem("isAdmin") === "true");
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -98,6 +127,12 @@ export default function ListaParticipantes({
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isGeneratingMock, setIsGeneratingMock] = useState(false);
+
+  // States for Team Name Overrides
+  const [showTeamOverridesModal, setShowTeamOverridesModal] = useState(false);
+  const [editingOverrides, setEditingOverrides] = useState<Record<string, string>>({});
+  const [isSavingOverrides, setIsSavingOverrides] = useState(false);
+  const [overridesActiveTab, setOverridesActiveTab] = useState<"16avos" | "octavos" | "cuartos" | "semis" | "tercer-puesto" | "final">("16avos");
 
   // States for Database Excel Restore Utility
   const [restoringSubmissions, setRestoringSubmissions] = useState<any[]>([]);
@@ -153,6 +188,62 @@ export default function ListaParticipantes({
   const [newPlayerEmailInput, setNewPlayerEmailInput] = useState("");
   const [playerEmailError, setPlayerEmailError] = useState("");
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+
+  // TEAM NAME OVERRIDES HANDLERS
+  const handleOpenTeamOverrides = () => {
+    setEditingOverrides({ ...teamOverrides });
+    setOverridesActiveTab("16avos");
+    setShowTeamOverridesModal(true);
+  };
+
+  const handleOpenTeamOverridesOfPhase = (phase: "16avos" | "octavos" | "cuartos" | "semis" | "tercer-puesto" | "final") => {
+    setEditingOverrides({ ...teamOverrides });
+    setOverridesActiveTab(phase);
+    setShowTeamOverridesModal(true);
+  };
+
+  const countOverridesForPhase = (phase: "16avos" | "octavos" | "cuartos" | "semis" | "tercer-puesto" | "final" | "all") => {
+    if (phase === "all") {
+      return Object.keys(teamOverrides).length;
+    }
+    
+    let wildcards: string[] = [];
+    if (phase === "16avos") {
+      wildcards = Array.from(new Set(
+        activeMatches
+          .filter(m => m.id >= 73 && m.id <= 88)
+          .flatMap(m => [m.homeTeam, m.awayTeam])
+          .filter(name => /^[1-3]/.test(name))
+      ));
+    } else if (phase === "octavos") {
+      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 89 && m.id <= 96).flatMap(m => [m.homeTeam, m.awayTeam])));
+    } else if (phase === "cuartos") {
+      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 97 && m.id <= 100).flatMap(m => [m.homeTeam, m.awayTeam])));
+    } else if (phase === "semis") {
+      wildcards = Array.from(new Set(activeMatches.filter(m => m.id >= 101 && m.id <= 102).flatMap(m => [m.homeTeam, m.awayTeam])));
+    } else if (phase === "tercer-puesto") {
+      wildcards = Array.from(new Set(activeMatches.filter(m => m.id === 103).flatMap(m => [m.homeTeam, m.awayTeam])));
+    } else if (phase === "final") {
+      wildcards = Array.from(new Set(activeMatches.filter(m => m.id === 104).flatMap(m => [m.homeTeam, m.awayTeam])));
+    }
+    
+    return wildcards.filter(w => !!teamOverrides[w]).length;
+  };
+
+  const handleSaveTeamOverrides = async () => {
+    setIsSavingOverrides(true);
+    try {
+      if (onUpdateTeamOverrides) {
+        await onUpdateTeamOverrides(editingOverrides);
+      }
+      setShowTeamOverridesModal(false);
+    } catch (err) {
+      console.error("Failed to save team overrides:", err);
+      alert("Error al guardar alias de equipos: " + err);
+    } finally {
+      setIsSavingOverrides(false);
+    }
+  };
 
   const handleGenerateTestParticipants = async () => {
     if (!onGenerateMockData) return;
@@ -307,7 +398,7 @@ export default function ListaParticipantes({
           ["Correo Electrónico", maskEmail(sub.participant.email)],
           ["Teléfono de Contacto", sub.participant.phone ? maskPhone(sub.participant.phone) : "No registrado"],
           ["Fecha y Hora del Último Registro", new Date(sub.submittedAt).toLocaleString("es-ES")],
-          ["Partidos Pronosticados", `${sub.totalMatchesPredicted} / ${MATCHES.length}`],
+          ["Partidos Pronosticados", `${sub.totalMatchesPredicted} / ${activeMatches.length}`],
           [], // Empty spacer row
           ["ESTRUCTURA DE PARTIDOS & PRONÓSTICOS"],
           ["Partido ID", "Grupo", "Equipo Local", "Pronóstico Local", "Pronóstico Visitante", "Equipo Visitante"]
@@ -315,7 +406,7 @@ export default function ListaParticipantes({
 
         // Populate match predictions in standard rows
         let lastGroup = "";
-        MATCHES.forEach((match) => {
+        activeMatches.forEach((match) => {
           if (lastGroup && match.group !== lastGroup) {
             // Include a blank row as space between different groups
             sheetData.push([]);
@@ -697,19 +788,28 @@ export default function ListaParticipantes({
       </div>
 
       {isAdmin && (
-        <div className="bg-[#00FF00]/5 border border-[#00FF00]/15 rounded-xl p-5 mb-6 animate-fade-in text-left">
-          <div className="space-y-5">
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-[#00FF00] uppercase tracking-wider flex items-center gap-1.5">
-                🛠️ Panel de Herramientas de Administrador
-              </p>
-              <p className="text-[11px] text-white/60 leading-relaxed max-w-2xl">
-                Accede a las utilidades de exportación, diagnóstico y control de cierres del sistema. Puedes descargar las planillas de todos los participantes inscritos en un único archivo Excel de respaldo, restaurar la base de datos o bloquear de forma independiente el registro y edición de cada fase en tiempo real.
-              </p>
-            </div>
-            
-            <div className="border-t border-white/10 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 w-full">
+        <>
+          <div className="bg-[#050505] border border-white/10 rounded-2xl p-6 sm:p-8 mb-6 animate-fade-in text-left space-y-6 shadow-2xl">
+          <div className="space-y-1 pb-4 border-b border-white/5">
+            <p className="text-xs font-bold text-[#00FF00] uppercase tracking-wider flex items-center gap-2 font-mono">
+              🛠️ Panel de Herramientas de Administrador
+            </p>
+            <p className="text-xs text-white/50 leading-relaxed max-w-3xl">
+              Accede a las utilidades de exportación, control de accesos, cierres del sistema y alias de equipos clasificados en tiempo real.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* CARD 1: EXCEL & BACKUPS */}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-[#00FF00] shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Planillas y Respaldos</h4>
+                  <p className="text-[10px] text-white/40">Descarga de planillas consolidadas y restauración total de base de datos.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
                   id="btn-admin-download-excel"
                   type="button"
@@ -717,7 +817,7 @@ export default function ListaParticipantes({
                   className="w-full h-11 flex items-center justify-center gap-2 font-black px-4 bg-[#00FF00] hover:bg-white text-black rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer"
                 >
                   <FileSpreadsheet className="w-4 h-4 shrink-0" />
-                  Descargar Todo (Excel)
+                  Descargar (Excel)
                 </button>
 
                 <button
@@ -736,7 +836,19 @@ export default function ListaParticipantes({
                   onChange={handleRestoreExcelUpload}
                   className="hidden"
                 />
+              </div>
+            </div>
 
+            {/* CARD 2: GENERAL ACCESS CONTROL */}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Accesos y Edición</h4>
+                  <p className="text-[10px] text-white/40">Control global de registro de nuevos usuarios y edición de datos.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
                   id="btn-admin-toggle-edit-lock"
                   type="button"
@@ -782,73 +894,131 @@ export default function ListaParticipantes({
                     </>
                   )}
                 </button>
+              </div>
+            </div>
 
-                <button
-                  id="btn-admin-toggle-group-lock"
-                  type="button"
-                  onClick={() => onToggleGroupPhaseLock && onToggleGroupPhaseLock(!isGroupPhaseLocked)}
-                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                    isGroupPhaseLocked
-                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                      : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
-                  }`}
-                >
-                  {isGroupPhaseLocked ? (
-                    <>
-                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                      Grupo (1-72): Cerrado
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
-                      Grupo (1-72): Abierto
-                    </>
-                  )}
-                </button>
-
-                <button
-                  id="btn-admin-toggle-second-lock"
-                  type="button"
-                  onClick={() => onToggleSecondPhaseLock && onToggleSecondPhaseLock(!isSecondPhaseLocked)}
-                  className={`w-full h-11 flex items-center justify-center gap-2 font-bold px-4 rounded-lg border shadow-md transition-all text-xs uppercase tracking-tighter cursor-pointer ${
-                    isSecondPhaseLocked
-                      ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
-                      : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
-                  }`}
-                >
-                  {isSecondPhaseLocked ? (
-                    <>
-                      <Lock className="w-4 h-4 text-red-400 shrink-0" />
-                      16avos (73-88): Cerrado
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 text-[#00FF00] shrink-0" />
-                      16avos (73-88): Abierto
-                    </>
-                  )}
-                </button>
-
-                {onGenerateMockData && (
+            {/* CARD 3: TOURNAMENT PHASES LOCKS */}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-indigo-400 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Cierre de Fases de Juego</h4>
+                  <p className="text-[10px] text-white/40">Bloquea de forma independiente los pronósticos por fases del torneo.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {[
+                  {
+                    id: "group-lock",
+                    locked: isGroupPhaseLocked,
+                    onToggle: () => onToggleGroupPhaseLock && onToggleGroupPhaseLock(!isGroupPhaseLocked),
+                    label: "Grupos",
+                  },
+                  {
+                    id: "second-lock",
+                    locked: isSecondPhaseLocked,
+                    onToggle: () => onToggleSecondPhaseLock && onToggleSecondPhaseLock(!isSecondPhaseLocked),
+                    label: "16avos",
+                  },
+                  {
+                    id: "third-lock",
+                    locked: isThirdPhaseLocked,
+                    onToggle: () => onToggleThirdPhaseLock && onToggleThirdPhaseLock(!isThirdPhaseLocked),
+                    label: "Octavos",
+                  },
+                  {
+                    id: "fourth-lock",
+                    locked: isFourthPhaseLocked,
+                    onToggle: () => onToggleFourthPhaseLock && onToggleFourthPhaseLock(!isFourthPhaseLocked),
+                    label: "Cuartos",
+                  },
+                  {
+                    id: "fifth-lock",
+                    locked: isFifthPhaseLocked,
+                    onToggle: () => onToggleFifthPhaseLock && onToggleFifthPhaseLock(!isFifthPhaseLocked),
+                    label: "Semifinales",
+                  },
+                  {
+                    id: "sixth-lock",
+                    locked: isSixthPhaseLocked,
+                    onToggle: () => onToggleSixthPhaseLock && onToggleSixthPhaseLock(!isSixthPhaseLocked),
+                    label: "3° Puesto",
+                  },
+                  {
+                    id: "seventh-lock",
+                    locked: isSeventhPhaseLocked,
+                    onToggle: () => onToggleSeventhPhaseLock && onToggleSeventhPhaseLock(!isSeventhPhaseLocked),
+                    label: "Gran Final",
+                  },
+                ].map((ph) => (
                   <button
-                    id="btn-admin-generate-mockups"
+                    key={ph.id}
+                    id={`btn-admin-toggle-${ph.id}`}
                     type="button"
-                    disabled={isGeneratingMock}
-                    onClick={handleGenerateTestParticipants}
-                    className="w-full h-11 flex items-center justify-center gap-2 font-bold px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg shadow-md transition-all text-xs uppercase tracking-tighter disabled:opacity-50 cursor-pointer"
+                    onClick={ph.onToggle}
+                    className={`w-full h-11 flex items-center justify-center gap-1.5 font-bold px-2 rounded-lg border shadow-md transition-all text-[11px] uppercase tracking-tighter cursor-pointer ${
+                      ph.locked
+                        ? "bg-red-950/45 border-red-500/30 text-red-300 hover:bg-red-500 hover:text-black"
+                        : "bg-[#00FF00]/10 border-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00] hover:text-black"
+                    }`}
                   >
-                    {isGeneratingMock ? (
+                    {ph.locked ? (
                       <>
-                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" /> Generando...
+                        <Lock className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                        <span className="truncate">{ph.label}: Cerrado</span>
                       </>
                     ) : (
-                      "Crear 5 Participantes"
+                      <>
+                        <Check className="w-3.5 h-3.5 text-[#00FF00] shrink-0" />
+                        <span className="truncate">{ph.label}: Abierto</span>
+                      </>
                     )}
                   </button>
-                )}
+                ))}
+              </div>
+            </div>
+
+            {/* CARD 4: FASES */}
+            <div className="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Fases</h4>
+                  <p className="text-[10px] text-white/40">Configura los nombres reales de los equipos clasificados a cada una de las fases eliminatorias.</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {[
+                  { id: "16avos" as const, label: "16avos de Final", icon: "🏆", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" },
+                  { id: "octavos" as const, label: "Octavos de Final", icon: "🎖️", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" },
+                  { id: "cuartos" as const, label: "Cuartos de Final", icon: "🛡️", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" },
+                  { id: "semis" as const, label: "Semifinales", icon: "⚔️", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" },
+                  { id: "tercer-puesto" as const, label: "Tercer Puesto", icon: "🥉", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" },
+                  { id: "final" as const, label: "Gran Final", icon: "👑", color: "text-amber-300 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500 hover:text-black" }
+                ].map((ph) => {
+                  const numConfigured = countOverridesForPhase(ph.id);
+                  return (
+                    <button
+                      key={ph.id}
+                      id={`btn-admin-team-override-${ph.id}`}
+                      type="button"
+                      onClick={() => handleOpenTeamOverridesOfPhase(ph.id)}
+                      className={`w-full py-3 px-4 flex flex-col items-center justify-center gap-1 font-bold rounded-lg border shadow-md transition-all text-center cursor-pointer ${ph.color}`}
+                    >
+                      <span className="text-sm font-bold flex items-center gap-1.5">
+                        <span>{ph.icon}</span> {ph.label}
+                      </span>
+                      <span className="text-[10px] opacity-80 uppercase tracking-wider font-mono">
+                        {numConfigured > 0 ? `${numConfigured} asignados` : "Ninguno asignado"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
+        </div>
 
           {/* ASISTENTE INTERACTIVO DE RESTAURACIÓN DE EXCEL */}
           {restoringSubmissions.length > 0 && (
@@ -988,7 +1158,7 @@ export default function ListaParticipantes({
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       <div className="relative mb-6">
@@ -1098,17 +1268,17 @@ export default function ListaParticipantes({
                     </p>
                     <div className="mt-1.5 flex flex-col items-start sm:items-end gap-1">
                       <p className="text-xs font-mono font-bold text-[#00FF00] flex items-center gap-1.5 sm:justify-end">
-                        <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / {MATCHES.length} Partidos
+                        <Trophy className="w-3.5 h-3.5" /> {sub.totalMatchesPredicted} / {activeMatches.length} Partidos
                       </p>
                       {/* Percent Fill & Visual Meter */}
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[9px] font-mono shrink-0 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/60">
-                          {Math.round((sub.totalMatchesPredicted / MATCHES.length) * 100)}% Completado
+                          {Math.round((sub.totalMatchesPredicted / activeMatches.length) * 100)}% Completado
                         </span>
                         <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden shrink-0 hidden sm:block">
                           <div 
                             className="bg-[#00FF00] h-full rounded-full" 
-                            style={{ width: `${(sub.totalMatchesPredicted / MATCHES.length) * 100}%` }}
+                            style={{ width: `${(sub.totalMatchesPredicted / activeMatches.length) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -1436,6 +1606,175 @@ export default function ListaParticipantes({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Admin Team name overrides modal */}
+      {showTeamOverridesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-[#0A0A0A] border border-white/10 rounded-2xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl text-left my-8">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-xl font-bold font-serif italic text-white flex items-center gap-2">
+                  {overridesActiveTab === "16avos" && "🏆 Definir Equipos de 16avos"}
+                  {overridesActiveTab === "octavos" && "🎖️ Definir Equipos de Octavos"}
+                  {overridesActiveTab === "cuartos" && "🛡️ Definir Equipos de Cuartos"}
+                  {overridesActiveTab === "semis" && "⚔️ Definir Equipos de Semifinales"}
+                  {overridesActiveTab === "tercer-puesto" && "🥉 Definir Equipos de 3° Puesto"}
+                  {overridesActiveTab === "final" && "👑 Definir Equipos de la Final"}
+                </h3>
+                <p className="text-[11px] text-white/50 mt-1">
+                  {overridesActiveTab === "16avos" && "Escribe los nombres reales de los equipos clasificados para reemplazar los comodines de 16avos de Final (ej. '1A' por 'España')."}
+                  {overridesActiveTab === "octavos" && "Escribe los nombres reales de los equipos para Octavos de Final (comodines G73 a G88 que significan Ganador del Partido 73, etc)."}
+                  {overridesActiveTab === "cuartos" && "Escribe los nombres reales de los equipos para Cuartos de final (comodines G89 a G96 que significan Ganador del Partido 89, etc)."}
+                  {overridesActiveTab === "semis" && "Escribe los nombres reales de los equipos para Semifinales (comodines G97 a G100 que significan Ganador del Partido 97, etc)."}
+                  {overridesActiveTab === "tercer-puesto" && "Escribe los nombres reales de los equipos para el partido de 3° Puesto (P101 y P102 que significan Perdedor del Partido 101, etc)."}
+                  {overridesActiveTab === "final" && "Escribe los nombres reales de los equipos finalistas de la Gran Final (G101 y G102 que significan Ganador del Partido 101, etc)."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTeamOverridesModal(false)}
+                className="text-white/40 hover:text-white transition-colors cursor-pointer text-sm font-mono p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Internal Phase selector */}
+            <div className="flex bg-[#121212] border border-white/5 p-1 rounded-xl gap-1 overflow-x-auto whitespace-nowrap scrollbar-none text-xs font-sans">
+              {[
+                { id: "16avos" as const, label: "16avos (16)", icon: "🏆" },
+                { id: "octavos" as const, label: "Octavos (8)", icon: "🎖️" },
+                { id: "cuartos" as const, label: "Cuartos (4)", icon: "🛡️" },
+                { id: "semis" as const, label: "Semis (2)", icon: "⚔️" },
+                { id: "tercer-puesto" as const, label: "3° Lugar (1)", icon: "🥉" },
+                { id: "final" as const, label: "Final (1)", icon: "👑" }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setOverridesActiveTab(tab.id)}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 ${
+                    overridesActiveTab === tab.id
+                      ? "bg-amber-500 text-black shadow"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <span>{tab.icon}</span> {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="max-h-[300px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 pr-1">
+              {React.useMemo(() => {
+                let list: string[] = [];
+                if (overridesActiveTab === "16avos") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id >= 73 && m.id <= 88)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                      .filter(name => /^[1-3]/.test(name))
+                  )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+                } else if (overridesActiveTab === "octavos") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id >= 89 && m.id <= 96)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                  )).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+                    return numA - numB;
+                  });
+                } else if (overridesActiveTab === "cuartos") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id >= 97 && m.id <= 100)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                  )).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+                    return numA - numB;
+                  });
+                } else if (overridesActiveTab === "semis") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id >= 101 && m.id <= 102)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                  )).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+                    return numA - numB;
+                  });
+                } else if (overridesActiveTab === "tercer-puesto") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id === 103)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                  )).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+                    return numA - numB;
+                  });
+                } else if (overridesActiveTab === "final") {
+                  list = Array.from(new Set(
+                    activeMatches
+                      .filter(m => m.id === 104)
+                      .flatMap(m => [m.homeTeam, m.awayTeam])
+                  )).sort((a, b) => {
+                    const numA = parseInt(a.replace(/\D/g, ""), 10) || 0;
+                    const numB = parseInt(b.replace(/\D/g, ""), 10) || 0;
+                    return numA - numB;
+                  });
+                }
+                return list;
+              }, [activeMatches, overridesActiveTab]).map((wildcard) => (
+                <div key={wildcard} className="bg-white/5 border border-white/10 p-3 rounded-lg flex items-center justify-between gap-3">
+                  <div className="shrink-0">
+                    <span className="text-xs font-mono font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                      {wildcard}
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editingOverrides[wildcard] || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditingOverrides(prev => ({
+                        ...prev,
+                        [wildcard]: val
+                      }));
+                    }}
+                    placeholder="Escribe el país..."
+                    className="flex-1 min-w-[100px] bg-[#121212] border border-white/10 focus:border-amber-400 rounded px-2.5 py-1.5 text-xs text-white"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-white/10 justify-end">
+              <button
+                type="button"
+                disabled={isSavingOverrides}
+                onClick={() => setShowTeamOverridesModal(false)}
+                className="px-5 py-2 hover:bg-white/5 border border-white/10 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingOverrides}
+                onClick={handleSaveTeamOverrides}
+                className="px-5 py-2 bg-amber-500 hover:bg-white text-black font-black rounded-lg text-xs transition-colors cursor-pointer uppercase tracking-tight flex items-center gap-1.5"
+              >
+                {isSavingOverrides ? (
+                  <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+                ) : (
+                  "Guardar Cambios"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

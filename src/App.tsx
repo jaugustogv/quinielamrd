@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Trophy, 
   PenTool, 
@@ -22,7 +22,33 @@ import Header from "./components/Header";
 import FormularioRegistro from "./components/FormularioRegistro";
 import ResumenRecibo from "./components/ResumenRecibo";
 import ListaParticipantes from "./components/ListaParticipantes";
-import { getAllSubmissions, saveSubmission, deleteSubmission, syncLocalSubmissions, getEditingLocked, saveEditingLocked, getRegistrationLocked, saveRegistrationLocked, getGroupPhaseLocked, saveGroupPhaseLocked, getSecondPhaseLocked, saveSecondPhaseLocked, getLocalSubmissions } from "./storage";
+import { 
+  getAllSubmissions, 
+  saveSubmission, 
+  deleteSubmission, 
+  syncLocalSubmissions, 
+  getEditingLocked, 
+  saveEditingLocked, 
+  getRegistrationLocked, 
+  saveRegistrationLocked, 
+  getGroupPhaseLocked, 
+  saveGroupPhaseLocked, 
+  getSecondPhaseLocked, 
+  saveSecondPhaseLocked, 
+  getThirdPhaseLocked,
+  saveThirdPhaseLocked,
+  getFourthPhaseLocked,
+  saveFourthPhaseLocked,
+  getFifthPhaseLocked,
+  saveFifthPhaseLocked,
+  getSixthPhaseLocked,
+  saveSixthPhaseLocked,
+  getSeventhPhaseLocked,
+  saveSeventhPhaseLocked,
+  getLocalSubmissions, 
+  getTeamOverrides, 
+  saveTeamOverrides 
+} from "./storage";
 import { QuinielaSubmission } from "./types";
 import { isFirebaseConfigured } from "./firebase";
 import { MATCHES } from "./games";
@@ -41,10 +67,32 @@ export default function App() {
   const [searchPinError, setSearchPinError] = useState("");
   const [isSearchUnlocked, setIsSearchUnlocked] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  
+  // Phase and generic locks
   const [isEditingLocked, setIsEditingLocked] = useState(false);
   const [isRegistrationLocked, setIsRegistrationLocked] = useState(false);
   const [isGroupPhaseLocked, setIsGroupPhaseLocked] = useState(true);
   const [isSecondPhaseLocked, setIsSecondPhaseLocked] = useState(false);
+  const [isThirdPhaseLocked, setIsThirdPhaseLocked] = useState(false);
+  const [isFourthPhaseLocked, setIsFourthPhaseLocked] = useState(false);
+  const [isFifthPhaseLocked, setIsFifthPhaseLocked] = useState(false);
+  const [isSixthPhaseLocked, setIsSixthPhaseLocked] = useState(false);
+  const [isSeventhPhaseLocked, setIsSeventhPhaseLocked] = useState(false);
+  
+  const [teamOverrides, setTeamOverrides] = useState<Record<string, string>>({});
+
+  // Dynamically compute matches array with overrides applied
+  const dynamicMatches = useMemo(() => {
+    return MATCHES.map((m) => {
+      const newHome = teamOverrides[m.homeTeam] || m.homeTeam;
+      const newAway = teamOverrides[m.awayTeam] || m.awayTeam;
+      return {
+        ...m,
+        homeTeam: newHome,
+        awayTeam: newAway,
+      };
+    });
+  }, [teamOverrides]);
 
   // Fetch registered submissions from storage
   useEffect(() => {
@@ -52,6 +100,14 @@ export default function App() {
       try {
         await syncLocalSubmissions();
         let data = await getAllSubmissions();
+
+        // Load dynamic team name overrides
+        try {
+          const overrides = await getTeamOverrides();
+          setTeamOverrides(overrides);
+        } catch (oe) {
+          console.warn("Failed to load team overrides:", oe);
+        }
         
         // One-time auto-healing patch: Change the dates of the 3 latest manual load submissions to June 7, 2026.
         // We find the first 3 submissions on the list (which currently are sorted descending and appear first due to the incorrect date).
@@ -130,6 +186,16 @@ export default function App() {
         setIsGroupPhaseLocked(gpLock);
         const spLock = await getSecondPhaseLocked();
         setIsSecondPhaseLocked(spLock);
+        const tpLock = await getThirdPhaseLocked();
+        setIsThirdPhaseLocked(tpLock);
+        const qpLock = await getFourthPhaseLocked();
+        setIsFourthPhaseLocked(qpLock);
+        const sfLock = await getFifthPhaseLocked();
+        setIsFifthPhaseLocked(sfLock);
+        const t3Lock = await getSixthPhaseLocked();
+        setIsSixthPhaseLocked(t3Lock);
+        const fLock = await getSeventhPhaseLocked();
+        setIsSeventhPhaseLocked(fLock);
       } catch (err) {
         console.warn("Silent sync error on load:", err);
         // Load fallback local items if Firestore fails
@@ -425,6 +491,61 @@ export default function App() {
       setIsSecondPhaseLocked(newVal);
     } catch (err) {
       console.error("Failed to change second phase lock state:", err);
+    }
+  };
+
+  const handleToggleThirdPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveThirdPhaseLocked(newVal);
+      setIsThirdPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change third phase lock state:", err);
+    }
+  };
+
+  const handleToggleFourthPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveFourthPhaseLocked(newVal);
+      setIsFourthPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change fourth phase lock state:", err);
+    }
+  };
+
+  const handleToggleFifthPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveFifthPhaseLocked(newVal);
+      setIsFifthPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change fifth phase lock state:", err);
+    }
+  };
+
+  const handleToggleSixthPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveSixthPhaseLocked(newVal);
+      setIsSixthPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change sixth phase lock state:", err);
+    }
+  };
+
+  const handleToggleSeventhPhaseLock = async (newVal: boolean) => {
+    try {
+      await saveSeventhPhaseLocked(newVal);
+      setIsSeventhPhaseLocked(newVal);
+    } catch (err) {
+      console.error("Failed to change seventh phase lock state:", err);
+    }
+  };
+
+  const handleUpdateTeamOverrides = async (newOverrides: Record<string, string>) => {
+    try {
+      await saveTeamOverrides(newOverrides);
+      setTeamOverrides(newOverrides);
+    } catch (err) {
+      console.error("Failed to save team overrides:", err);
+      throw err;
     }
   };
 
@@ -922,6 +1043,7 @@ export default function App() {
               /* TAB 2: REGISTRATION & PREDICTIONS FORM */
               <div className="animate-fade-in">
                 <FormularioRegistro 
+                  matches={dynamicMatches}
                   onSuccess={handleSubmissionSuccess} 
                   isSubmitting={isSubmitting} 
                   submissions={submissions}
@@ -931,6 +1053,11 @@ export default function App() {
                   isRegistrationLocked={isRegistrationLocked}
                   isGroupPhaseLocked={isGroupPhaseLocked}
                   isSecondPhaseLocked={isSecondPhaseLocked}
+                  isThirdPhaseLocked={isThirdPhaseLocked}
+                  isFourthPhaseLocked={isFourthPhaseLocked}
+                  isFifthPhaseLocked={isFifthPhaseLocked}
+                  isSixthPhaseLocked={isSixthPhaseLocked}
+                  isSeventhPhaseLocked={isSeventhPhaseLocked}
                 />
               </div>
             )}
@@ -939,6 +1066,7 @@ export default function App() {
               /* TAB 3: RECEIPT / SHARING SCREEN */
               <div className="animate-fade-in">
                 <ResumenRecibo 
+                  matches={dynamicMatches}
                   submission={currentSubmission} 
                   onClose={() => {
                     setCurrentSubmission(null);
@@ -952,6 +1080,9 @@ export default function App() {
               /* TAB 4: TOTAL LIST PARTICIPANTS SCREEN */
               <div className="animate-fade-in">
                 <ListaParticipantes 
+                  matches={dynamicMatches}
+                  teamOverrides={teamOverrides}
+                  onUpdateTeamOverrides={handleUpdateTeamOverrides}
                   submissions={submissions} 
                   currentSubmission={currentSubmission}
                   onSelectSubmission={handleSelectParticipantReceipt}
@@ -968,6 +1099,16 @@ export default function App() {
                   onToggleGroupPhaseLock={handleToggleGroupPhaseLock}
                   isSecondPhaseLocked={isSecondPhaseLocked}
                   onToggleSecondPhaseLock={handleToggleSecondPhaseLock}
+                  isThirdPhaseLocked={isThirdPhaseLocked}
+                  onToggleThirdPhaseLock={handleToggleThirdPhaseLock}
+                  isFourthPhaseLocked={isFourthPhaseLocked}
+                  onToggleFourthPhaseLock={handleToggleFourthPhaseLock}
+                  isFifthPhaseLocked={isFifthPhaseLocked}
+                  onToggleFifthPhaseLock={handleToggleFifthPhaseLock}
+                  isSixthPhaseLocked={isSixthPhaseLocked}
+                  onToggleSixthPhaseLock={handleToggleSixthPhaseLock}
+                  isSeventhPhaseLocked={isSeventhPhaseLocked}
+                  onToggleSeventhPhaseLock={handleToggleSeventhPhaseLock}
                   onRefreshSubmissions={handleReloadAllSubmissions}
                 />
               </div>

@@ -452,7 +452,7 @@ export const MATCHES: Match[] = [
   {
     "id": 74,
     "group": "16avos de Final",
-    "homeTeam": "1E",
+    "homeTeam": "Alemania",
     "awayTeam": "3ABCDF"
   },
   {
@@ -464,7 +464,7 @@ export const MATCHES: Match[] = [
   {
     "id": 76,
     "group": "16avos de Final",
-    "homeTeam": "1E",
+    "homeTeam": "1C",
     "awayTeam": "2F"
   },
   {
@@ -482,7 +482,7 @@ export const MATCHES: Match[] = [
   {
     "id": 79,
     "group": "16avos de Final",
-    "homeTeam": "1A",
+    "homeTeam": "Mexico",
     "awayTeam": "3CEFHI"
   },
   {
@@ -494,7 +494,7 @@ export const MATCHES: Match[] = [
   {
     "id": 81,
     "group": "16avos de Final",
-    "homeTeam": "1D",
+    "homeTeam": "Estados Unidos",
     "awayTeam": "3BEFIJ"
   },
   {
@@ -524,7 +524,7 @@ export const MATCHES: Match[] = [
   {
     "id": 86,
     "group": "16avos de Final",
-    "homeTeam": "1J",
+    "homeTeam": "Argentina",
     "awayTeam": "2H"
   },
   {
@@ -538,5 +538,101 @@ export const MATCHES: Match[] = [
     "group": "16avos de Final",
     "homeTeam": "2D",
     "awayTeam": "2G"
+  },
+  {
+    "id": 89,
+    "group": "Octavos de Final",
+    "homeTeam": "G74",
+    "awayTeam": "G77"
+  },
+  {
+    "id": 90,
+    "group": "Octavos de Final",
+    "homeTeam": "G73",
+    "awayTeam": "G75"
+  },
+  {
+    "id": 91,
+    "group": "Octavos de Final",
+    "homeTeam": "G76",
+    "awayTeam": "G78"
+  },
+  {
+    "id": 92,
+    "group": "Octavos de Final",
+    "homeTeam": "G79",
+    "awayTeam": "G80"
+  },
+  {
+    "id": 93,
+    "group": "Octavos de Final",
+    "homeTeam": "G83",
+    "awayTeam": "G84"
+  },
+  {
+    "id": 94,
+    "group": "Octavos de Final",
+    "homeTeam": "G81",
+    "awayTeam": "G82"
+  },
+  {
+    "id": 95,
+    "group": "Octavos de Final",
+    "homeTeam": "G86",
+    "awayTeam": "G88"
+  },
+  {
+    "id": 96,
+    "group": "Octavos de Final",
+    "homeTeam": "G85",
+    "awayTeam": "G87"
+  },
+  {
+    "id": 97,
+    "group": "Cuartos de Final",
+    "homeTeam": "G89",
+    "awayTeam": "G90"
+  },
+  {
+    "id": 98,
+    "group": "Cuartos de Final",
+    "homeTeam": "G93",
+    "awayTeam": "G94"
+  },
+  {
+    "id": 99,
+    "group": "Cuartos de Final",
+    "homeTeam": "G91",
+    "awayTeam": "G92"
+  },
+  {
+    "id": 100,
+    "group": "Cuartos de Final",
+    "homeTeam": "G95",
+    "awayTeam": "G96"
+  },
+  {
+    "id": 101,
+    "group": "Semifinales",
+    "homeTeam": "G97",
+    "awayTeam": "G98"
+  },
+  {
+    "id": 102,
+    "group": "Semifinales",
+    "homeTeam": "G99",
+    "awayTeam": "G100"
+  },
+  {
+    "id": 103,
+    "group": "Tercer Puesto",
+    "homeTeam": "P101",
+    "awayTeam": "P102"
+  },
+  {
+    "id": 104,
+    "group": "Final",
+    "homeTeam": "G101",
+    "awayTeam": "G102"
   }
 ];

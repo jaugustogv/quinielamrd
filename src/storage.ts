@@ -452,6 +452,259 @@ export async function saveSecondPhaseLocked(locked: boolean): Promise<void> {
   }
 }
 
+/**
+ * Gets whether Tercera Fase (Octavos, Partidos 89-96) editing is locked.
+ * Defaults to false.
+ */
+export async function getThirdPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("third_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.thirdPhaseLocked === "boolean") {
+          localStorage.setItem("third_phase_locked", String(data.thirdPhaseLocked));
+          return data.thirdPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch third phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Tercera Fase (Octavos, Partidos 89-96) editing is locked.
+ */
+export async function saveThirdPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("third_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { thirdPhaseLocked: locked }, { merge: true });
+      console.log("Third phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save third phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Cuarta Fase (Cuartos, Partidos 97-100) editing is locked.
+ * Defaults to false.
+ */
+export async function getFourthPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("fourth_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.fourthPhaseLocked === "boolean") {
+          localStorage.setItem("fourth_phase_locked", String(data.fourthPhaseLocked));
+          return data.fourthPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch fourth phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Cuarta Fase (Cuartos, Partidos 97-100) editing is locked.
+ */
+export async function saveFourthPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("fourth_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { fourthPhaseLocked: locked }, { merge: true });
+      console.log("Fourth phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save fourth phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Quinta Fase (Semifinales, Partidos 101-102) editing is locked.
+ * Defaults to false.
+ */
+export async function getFifthPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("fifth_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.fifthPhaseLocked === "boolean") {
+          localStorage.setItem("fifth_phase_locked", String(data.fifthPhaseLocked));
+          return data.fifthPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch fifth phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Quinta Fase (Semifinales, Partidos 101-102) editing is locked.
+ */
+export async function saveFifthPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("fifth_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { fifthPhaseLocked: locked }, { merge: true });
+      console.log("Fifth phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save fifth phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Sexta Fase (Tercer Puesto, Partido 103) editing is locked.
+ * Defaults to false.
+ */
+export async function getSixthPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("sixth_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.sixthPhaseLocked === "boolean") {
+          localStorage.setItem("sixth_phase_locked", String(data.sixthPhaseLocked));
+          return data.sixthPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch sixth phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Sexta Fase (Tercer Puesto, Partido 103) editing is locked.
+ */
+export async function saveSixthPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("sixth_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { sixthPhaseLocked: locked }, { merge: true });
+      console.log("Sixth phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save sixth phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets whether Séptima Fase (Final, Partido 104) editing is locked.
+ * Defaults to false.
+ */
+export async function getSeventhPhaseLocked(): Promise<boolean> {
+  const stored = localStorage.getItem("seventh_phase_locked");
+  const localVal = stored === null ? false : stored === "true";
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && typeof data.seventhPhaseLocked === "boolean") {
+          localStorage.setItem("seventh_phase_locked", String(data.seventhPhaseLocked));
+          return data.seventhPhaseLocked;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch seventh phase lock status from Firestore, using local fallback:", e);
+    }
+  }
+  return localVal;
+}
+
+/**
+ * Saves whether Séptima Fase (Final, Partido 104) editing is locked.
+ */
+export async function saveSeventhPhaseLocked(locked: boolean): Promise<void> {
+  localStorage.setItem("seventh_phase_locked", String(locked));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "admin");
+      await setDoc(docRef, { seventhPhaseLocked: locked }, { merge: true });
+      console.log("Seventh phase lock status saved to Firestore:", locked);
+    } catch (e) {
+      console.error("Failed to save seventh phase lock status to Firestore:", e);
+    }
+  }
+}
+
+/**
+ * Gets dynamic team overrides (or aliases) for the matches.
+ */
+export async function getTeamOverrides(): Promise<Record<string, string>> {
+  const localVal = localStorage.getItem("team_overrides_key");
+  let overrides: Record<string, string> = {};
+  if (localVal) {
+    try {
+      overrides = JSON.parse(localVal);
+    } catch (e) {
+      console.warn("Failed to parse local team overrides:", e);
+    }
+  }
+
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "teams");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data && data.overrides) {
+          localStorage.setItem("team_overrides_key", JSON.stringify(data.overrides));
+          return data.overrides;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch team overrides from Firestore, using local fallback:", e);
+    }
+  }
+  return overrides;
+}
+
+/**
+ * Saves dynamic team overrides (or aliases) for the matches.
+ */
+export async function saveTeamOverrides(overrides: Record<string, string>): Promise<void> {
+  localStorage.setItem("team_overrides_key", JSON.stringify(overrides));
+  if (isFirebaseConfigured && db) {
+    try {
+      const docRef = doc(db, "config", "teams");
+      await setDoc(docRef, { overrides }, { merge: true });
+      console.log("Team overrides saved successfully to Firestore.");
+    } catch (e) {
+      console.error("Failed to save team overrides to Firestore:", e);
+    }
+  }
+}
+
 
 
 
