@@ -553,6 +553,33 @@ export default function App() {
     try {
       const data = await getAllSubmissions();
       setSubmissions(data);
+
+      // Also reload dynamic team overrides and lock states to ensure everything is fully synchronized
+      try {
+        const overrides = await getTeamOverrides();
+        setTeamOverrides(overrides);
+
+        const locked = await getEditingLocked();
+        setIsEditingLocked(locked);
+        const regLocked = await getRegistrationLocked();
+        setIsRegistrationLocked(regLocked);
+        const gpLock = await getGroupPhaseLocked();
+        setIsGroupPhaseLocked(gpLock);
+        const spLock = await getSecondPhaseLocked();
+        setIsSecondPhaseLocked(spLock);
+        const tpLock = await getThirdPhaseLocked();
+        setIsThirdPhaseLocked(tpLock);
+        const qpLock = await getFourthPhaseLocked();
+        setIsFourthPhaseLocked(qpLock);
+        const sfLock = await getFifthPhaseLocked();
+        setIsFifthPhaseLocked(sfLock);
+        const t3Lock = await getSixthPhaseLocked();
+        setIsSixthPhaseLocked(t3Lock);
+        const fLock = await getSeventhPhaseLocked();
+        setIsSeventhPhaseLocked(fLock);
+      } catch (errOverrides) {
+        console.warn("Failed to reload locks or team overrides:", errOverrides);
+      }
     } catch (err) {
       console.error("Failed to reload submissions:", err);
     }

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.15.3";
-export const VERSION_DATE = "23 de Junio, 2026";
+export const APP_VERSION = "2.15.4";
+export const VERSION_DATE = "27 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.15.4",
+    date: "27 Junio 2026",
+    title: "Sincronización de Equipos y Bloqueos en la Nube",
+    description: "Se corrigió un problema de permisos en las reglas de seguridad de Firestore (firestore.rules) que bloqueaba el acceso de lectura y escritura a la colección 'config' para usuarios no administradores. Esto impedía que otros dispositivos y teléfonos cargaran los equipos clasificados actualizados de 16avos de Final y los estados de bloqueo de fase, provocando que solo fuesen visibles en la computadora del administrador por caché local.",
+    type: "patch"
+  },
   {
     version: "2.15.3",
     date: "23 Junio 2026",

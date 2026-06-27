@@ -14,6 +14,12 @@ service cloud.firestore {
       allow delete: if true; // Allow deletions for management and cleanup
     }
 
+    // 3. Config Collection Rules (Admin Locks, PIN, and Team Name Overrides)
+    match /config/{configId} {
+      allow read: if true; // Everyone can read lock configurations and team name overrides
+      allow write: if true; // Allows the administrator to change the configurations
+    }
+
     // 3. Validation Blueprint Helper (Anti-Update-Gap & Size Enforcements)
     function isValidSubmission(data) {
       return data.keys().hasAll(['participant', 'predictions', 'submittedAt', 'totalMatchesPredicted'])
