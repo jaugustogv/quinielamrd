@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.15.4";
+export const APP_VERSION = "2.15.5";
 export const VERSION_DATE = "27 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.15.5",
+    date: "27 Junio 2026",
+    title: "Verificación de Flexibilidad Dinámica de Equipos",
+    description: "Se confirmó y garantizó que los nombres de los equipos de fases eliminatorias siguen siendo completamente dinámicos, editables por el administrador y sincronizables en la nube en tiempo real, manteniendo la lista inicial para evitar cualquier bloqueo estático o rígido.",
+    type: "patch"
+  },
   {
     version: "2.15.4",
     date: "27 Junio 2026",
