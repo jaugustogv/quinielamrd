@@ -446,98 +446,98 @@ export const MATCHES: Match[] = [
   {
     "id": 73,
     "group": "16avos de Final",
-    "homeTeam": "2A",
-    "awayTeam": "2B"
+    "homeTeam": "Rep Checa",
+    "awayTeam": "Suiza"
   },
   {
     "id": 74,
     "group": "16avos de Final",
     "homeTeam": "Alemania",
-    "awayTeam": "3ABCDF"
+    "awayTeam": "Paraguay"
   },
   {
     "id": 75,
     "group": "16avos de Final",
-    "homeTeam": "1F",
-    "awayTeam": "2C"
+    "homeTeam": "Países Bajos",
+    "awayTeam": "Marruecos"
   },
   {
     "id": 76,
     "group": "16avos de Final",
-    "homeTeam": "1C",
-    "awayTeam": "2F"
+    "homeTeam": "Brasil",
+    "awayTeam": "Japón"
   },
   {
     "id": 77,
     "group": "16avos de Final",
-    "homeTeam": "1I",
-    "awayTeam": "3CDFGH"
+    "homeTeam": "Francia",
+    "awayTeam": "Suecia"
   },
   {
     "id": 78,
     "group": "16avos de Final",
-    "homeTeam": "2E",
-    "awayTeam": "2I"
+    "homeTeam": "Costa de Marfil",
+    "awayTeam": "Noruega"
   },
   {
     "id": 79,
     "group": "16avos de Final",
     "homeTeam": "Mexico",
-    "awayTeam": "3CEFHI"
+    "awayTeam": "Ecuador"
   },
   {
     "id": 80,
     "group": "16avos de Final",
-    "homeTeam": "1L",
-    "awayTeam": "3EHIJK"
+    "homeTeam": "Inglaterra",
+    "awayTeam": "RD Congo"
   },
   {
     "id": 81,
     "group": "16avos de Final",
     "homeTeam": "Estados Unidos",
-    "awayTeam": "3BEFIJ"
+    "awayTeam": "Bosnia"
   },
   {
     "id": 82,
     "group": "16avos de Final",
-    "homeTeam": "1G",
-    "awayTeam": "3AEHIJ"
+    "homeTeam": "Bélgica",
+    "awayTeam": "Senegal"
   },
   {
     "id": 83,
     "group": "16avos de Final",
-    "homeTeam": "2K",
-    "awayTeam": "2L"
+    "homeTeam": "Colombia",
+    "awayTeam": "Ghana"
   },
   {
     "id": 84,
     "group": "16avos de Final",
-    "homeTeam": "1H",
-    "awayTeam": "2J"
+    "homeTeam": "España",
+    "awayTeam": "Austria"
   },
   {
     "id": 85,
     "group": "16avos de Final",
-    "homeTeam": "1B",
-    "awayTeam": "3EFGIJ"
+    "homeTeam": "Canadá",
+    "awayTeam": "Sudáfrica"
   },
   {
     "id": 86,
     "group": "16avos de Final",
     "homeTeam": "Argentina",
-    "awayTeam": "2H"
+    "awayTeam": "Cabo Verde"
   },
   {
     "id": 87,
     "group": "16avos de Final",
-    "homeTeam": "1K",
-    "awayTeam": "3DEIJL"
+    "homeTeam": "Portugal",
+    "awayTeam": "Croacia"
   },
   {
     "id": 88,
     "group": "16avos de Final",
-    "homeTeam": "2D",
-    "awayTeam": "2G"
+    "homeTeam": "Turquia",
+    "awayTeam": "Egipto"
   },
   {
     "id": 89,

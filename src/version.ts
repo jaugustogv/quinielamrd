@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.15.5";
-export const VERSION_DATE = "27 de Junio, 2026";
+export const APP_VERSION = "2.18.0";
+export const VERSION_DATE = "28 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,27 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.18.0",
+    date: "28 Junio 2026",
+    title: "Equipos de 16avos de Final Definidos de Forma 100% Fija para Todos",
+    description: "Se definieron y grabaron de forma fija (hardcoded) el 100% de los 16 partidos oficiales correspondientes a los 16avos de Final (partidos 73 al 88) una vez concluidos todos los partidos de los grupos I, J, K y L. Esto permite que todos los usuarios, sin importar su caché, visualicen los países clasificados correctos en tiempo real de forma fija y homogénea.",
+    type: "minor"
+  },
+  {
+    version: "2.17.0",
+    date: "27 Junio 2026",
+    title: "Corrección de Calendario de 16avos de Final Definidos y Comodines",
+    description: "Se corrigió el listado de partidos de 16avos de Final (partidos 73 al 88) para reflejar fielmente solo los cotejos que están 100% definidos a la fecha de hoy (June 27, 2026). Los partidos que dependen de los Grupos I, J, K y L (que se disputan hoy mismo) fueron restaurados a sus comodines de clasificación correspondientes (ej. '1I', '2E', '2I', '3BEFIJ', etc.). Esto permite que el sistema de alias/overrides dinámicos del administrador se aplique de forma correcta y transparente en todos los dispositivos.",
+    type: "minor"
+  },
+  {
+    version: "2.16.0",
+    date: "27 Junio 2026",
+    title: "Equipos de 16avos de Final Definidos de Forma Fija",
+    description: "Se definieron y grabaron de forma fija (hardcoded) todos los equipos clasificados reales para la fase de 16avos de Final (partidos 73 al 88) en la estructura de datos principal del torneo, garantizando que todos los usuarios y teléfonos visualicen la fase actualizada correctamente sin depender de la caché local del administrador ni de restricciones de permisos en la nube.",
+    type: "minor"
+  },
   {
     version: "2.15.5",
     date: "27 Junio 2026",

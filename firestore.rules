@@ -1,22 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // 1. Global Safety Net (Default Deny Catch-All)
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // 2. Submissions Collection Rules
+    // 1. Submissions Collection Rules
     match /submissions/{submissionId} {
       allow read, list: if true; // Public access for checking participants/leaderboard
       allow create, update: if isValidSubmission(request.resource.data);
       allow delete: if true; // Allow deletions for management and cleanup
     }
 
-    // 3. Config Collection Rules (Admin Locks, PIN, and Team Name Overrides)
+    // 2. Config Collection Rules (Admin Locks, PIN, and Team Name Overrides)
     match /config/{configId} {
-      allow read: if true; // Everyone can read lock configurations and team name overrides
+      allow read, list: if true; // Everyone can read lock configurations and team name overrides
       allow write: if true; // Allows the administrator to change the configurations
     }
 
