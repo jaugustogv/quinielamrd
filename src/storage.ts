@@ -170,8 +170,9 @@ export async function deleteSubmission(id: string | undefined, email: string, su
   // 1. Delete from client localStorage
   try {
     const localData = getLocalSubmissions();
+    const cleanEmail = email.toLowerCase().trim();
     const updated = localData.filter(
-      (sub) => !(sub.participant.email === email && sub.submittedAt === submittedAt)
+      (sub) => sub.participant.email.toLowerCase().trim() !== cleanEmail
     );
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
   } catch (e) {
@@ -197,6 +198,15 @@ export async function deleteSubmission(id: string | undefined, email: string, su
  */
 export async function syncLocalSubmissions(): Promise<void> {
   if (!isFirebaseConfigured || !db) return;
+  
+  // CRITICAL: If the administrator is logged in, DO NOT auto-sync local data to Firestore.
+  // The admin's local storage contains cached copies of ALL imported participants,
+  // and running auto-sync on the admin's browser would automatically re-upload deleted submissions.
+  if (sessionStorage.getItem("isAdmin") === "true") {
+    console.log("Admin session detected: skipping local auto-sync to Firestore.");
+    return;
+  }
+
   try {
     const locals = getLocalSubmissions();
     if (locals.length === 0) return;
@@ -335,7 +345,8 @@ export async function saveEditingLocked(locked: boolean): Promise<void> {
  * Gets whether registering new participants is locked/blocked by the admin.
  */
 export async function getRegistrationLocked(): Promise<boolean> {
-  const localVal = localStorage.getItem("registration_locked") === "true";
+  const stored = localStorage.getItem("registration_locked");
+  const localVal = stored === null ? true : stored === "true";
   if (isFirebaseConfigured && db) {
     try {
       const docRef = doc(db, "config", "admin");
@@ -345,7 +356,15 @@ export async function getRegistrationLocked(): Promise<boolean> {
         if (data && typeof data.registrationLocked === "boolean") {
           localStorage.setItem("registration_locked", String(data.registrationLocked));
           return data.registrationLocked;
+        } else {
+          await setDoc(docRef, { registrationLocked: true }, { merge: true });
+          localStorage.setItem("registration_locked", "true");
+          return true;
         }
+      } else {
+        await setDoc(docRef, { registrationLocked: true }, { merge: true });
+        localStorage.setItem("registration_locked", "true");
+        return true;
       }
     } catch (e) {
       console.warn("Failed to fetch registration lock status from Firestore, using local fallback:", e);

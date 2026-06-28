@@ -5,5 +5,6 @@
   "authDomain": "argon-elf-98gvj.firebaseapp.com",
   "storageBucket": "argon-elf-98gvj.firebasestorage.app",
   "messagingSenderId": "10164779380",
-  "measurementId": ""
+  "measurementId": "",
+  "firestoreDatabaseId": "ai-studio-68a49ed1-a7f0-408c-98d9-66ab01839a40"
 }

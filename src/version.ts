@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.19.0";
-export const VERSION_DATE = "28 de Junio, 2026";
+export const APP_VERSION = "2.20.0";
+export const VERSION_DATE = "29 de Junio, 2026";
 
 export interface ChangelogEntry {
   version: string;
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.20.0",
+    date: "29 Junio 2026",
+    title: "Bloqueo de Nuevos Jugadores y Purga Definitiva de Duplicados",
+    description: "Se configuró el bloqueo de registro de nuevos jugadores de manera predeterminada en todo el sistema. Asimismo, se corrigió el error por el cual los participantes eliminados reaparecían al purgar por completo el almacenamiento local usando comparaciones de correo de manera insensible a mayúsculas y omitiendo la autosincronización local en sesiones del administrador.",
+    type: "minor"
+  },
   {
     version: "2.19.0",
     date: "28 Junio 2026",
