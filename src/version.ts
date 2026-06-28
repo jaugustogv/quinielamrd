@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const APP_VERSION = "2.18.0";
+export const APP_VERSION = "2.19.0";
 export const VERSION_DATE = "28 de Junio, 2026";
 
 export interface ChangelogEntry {
@@ -15,6 +15,13 @@ export interface ChangelogEntry {
 }
 
 export const APP_CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "2.19.0",
+    date: "28 Junio 2026",
+    title: "Depuración de Participantes y Corrección del Partido 88",
+    description: "Se eliminaron las 2 participaciones de prueba de la base de datos de Firestore, restableciendo el total exacto de 28 participantes reales. Además, se corrigió el partido 88 (16avos de Final) para colocar a Australia como clasificado oficial en lugar de Turquía, quien no había clasificado.",
+    type: "minor"
+  },
   {
     version: "2.18.0",
     date: "28 Junio 2026",

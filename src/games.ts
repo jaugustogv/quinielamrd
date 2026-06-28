@@ -536,7 +536,7 @@ export const MATCHES: Match[] = [
   {
     "id": 88,
     "group": "16avos de Final",
-    "homeTeam": "Turquia",
+    "homeTeam": "Australia",
     "awayTeam": "Egipto"
   },
   {
